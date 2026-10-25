@@ -4,3 +4,23 @@ src-tauri/target/
 src-tauri/gen/
 .DS_Store
 *.log
+
+# agent 工具状态（含本机绝对路径，禁止公开）
+.v2c/
+.video_agent/
+.zcode/
+.claude/
+.codex/
+
+# 本地数据库与缓存
+*.db
+*.sqlite
+*.db-journal
+_build-cache/
+
+# 本地环境与密钥
+.env
+.env.*
+*.pem
+*.p12
+
