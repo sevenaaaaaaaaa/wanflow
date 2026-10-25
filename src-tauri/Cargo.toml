@@ -1,0 +1,42 @@
+[package]
+name = "wanflow"
+version = "0.1.0"
+description = "WanFlow - 面向宝妈宝爸的本地照片视频整理台"
+edition = "2021"
+
+[lib]
+name = "wanflow_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
+walkdir = "2"
+sha2 = "0.10"
+image = "0.25"
+rayon = "1.10"
+chrono = "0.4"
+regex = "1"
+kamadak-exif = "0.5"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls", "json"] }
+filetime = "0.2"
+keyring = "3"
+ort = { version = "2.0.0-rc.15", default-features = false, features = ["std", "ndarray", "download-binaries", "copy-dylibs", "tls-rustls"] }
+ndarray = { version = "0.17", features = ["std"] }
+tokenizers = { version = "0.20", default-features = false, features = ["fancy-regex", "onig"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+# dev 下给图像解码一点优化，扫描更快
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
