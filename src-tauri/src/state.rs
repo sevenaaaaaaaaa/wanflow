@@ -29,4 +29,5 @@ pub struct AppState {
     pub cache_dir: PathBuf,
     pub scan: Mutex<ScanStatus>,
     pub analyze: Mutex<ScanStatus>,
+    pub export: Mutex<ScanStatus>,
 }

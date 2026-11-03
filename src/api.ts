@@ -159,6 +159,47 @@ export interface AlbumItem {
   createdAt: number;
 }
 
+export interface ExportOptions {
+  destDir: string;
+  scope: "album" | "keeps" | "selection";
+  albumId?: number;
+  ids?: number[];
+  layout: "flat" | "year" | "month" | "album";
+  nameTemplate: string;
+  stripMetadata: boolean;
+  rewriteTime: boolean;
+  includeVideos: boolean;
+}
+
+export interface ExportRow {
+  id: number;
+  src: string;
+  dest: string;
+  filename: string;
+  kind: string;
+  sizeBytes: number;
+  action: "copy" | "skip";
+  reason: string | null;
+}
+
+export interface ExportPlan {
+  rows: ExportRow[];
+  copyCount: number;
+  skipCount: number;
+  copyBytes: number;
+  destDir: string;
+  notes: string[];
+}
+
+export interface ExportSummary {
+  copied: number;
+  skipped: number;
+  failed: number;
+  bytes: number;
+  destDir: string;
+  durationMs: number;
+}
+
 export interface SourceItem {
   id: number;
   kind: "folder" | "photos" | "webdav" | "qq";
@@ -212,6 +253,9 @@ export const api = {
   albumMedia: (id: number) => invoke<ScoredMedia[]>("album_media", { id }),
   resolveSuggestions: (ids: number[], apply: boolean) =>
     invoke<string>("resolve_suggestions", { ids, apply }),
+  exportPreview: (opts: ExportOptions) => invoke<ExportPlan>("export_preview", { opts }),
+  exportApply: (opts: ExportOptions) => invoke<void>("export_apply", { opts }),
+  exportStatus: () => invoke<ScanStatus>("export_status"),
 };
 
 export function thumbUrl(m: MediaItem): string {

@@ -2,6 +2,7 @@ pub mod analyze;
 pub mod clip;
 pub mod commands;
 pub mod db;
+pub mod export;
 pub mod phash;
 mod quality;
 pub mod scanner;
@@ -30,6 +31,7 @@ pub fn run() {
                 cache_dir: cache,
                 scan: Mutex::new(state::ScanStatus::default()),
                 analyze: Mutex::new(state::ScanStatus::default()),
+                export: Mutex::new(state::ScanStatus::default()),
             });
             Ok(())
         })
@@ -63,6 +65,9 @@ pub fn run() {
             smart::album_media,
             smart::create_album,
             smart::delete_album,
+            export::export_preview,
+            export::export_apply,
+            export::export_status,
         ])
         .run(tauri::generate_context!())
         .expect("WanFlow 启动失败");

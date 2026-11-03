@@ -12,6 +12,7 @@ import SuggestionsPanel from "./components/SuggestionsPanel.vue";
 import ImportModal from "./components/ImportModal.vue";
 import SmartPanel from "./components/SmartPanel.vue";
 import Arena from "./components/Arena.vue";
+import ExportModal from "./components/ExportModal.vue";
 
 // —— 库状态 ——
 const items = ref<MediaItem[]>([]);
@@ -48,6 +49,7 @@ const showImport = ref(false);
 const showSmart = ref(false);
 const suggestions = ref<SuggestionItem[]>([]);
 const arenaGroup = ref<number | null>(null);
+const showExport = ref(false);
 
 const hasLibrary = computed(() => (stats.value?.total ?? 0) > 0);
 
@@ -246,6 +248,7 @@ const progressPct = computed(() =>
       <button @click="openSuggestions">
         智能初筛<span v-if="suggestionCount > 0" class="count-badge">{{ suggestionCount }}</span>
       </button>
+      <button @click="showExport = true" title="把精选集导出成照片副本（原图不动）">导出</button>
       <button @click="undo" title="⌘Z">撤销</button>
       <button @click="redo" title="⇧⌘Z">重做</button>
       <button @click="openHistory">历史</button>
@@ -370,6 +373,14 @@ const progressPct = computed(() =>
       @close="showSuggestions = false"
       @applied="async label => { showToast(label); showSuggestions = false; await refresh(); }"
       @refresh="refresh"
+    />
+
+    <!-- 导出精选集 -->
+    <ExportModal
+      v-if="showExport"
+      :ids="[...selection]"
+      @close="showExport = false"
+      @done="s => { showToast(`已导出 ${s.copied} 个文件到 ${s.destDir}`); refresh(); }"
     />
 
     <!-- 擂台 -->
