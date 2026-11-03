@@ -50,7 +50,7 @@ fn main() {
     println!("嵌入完成：{done} 张，耗时 {elapsed:.1}s（{:.0}ms/张）", elapsed * 1000.0 / done as f32);
 
     // 语义搜索验证：三个查询
-    let clip = clip.lock().unwrap();
+    let mut clip = clip.lock().unwrap();
     for q in ["a baby swimming happily in a pool", "a blurry dark photo", "family photo outdoors"] {
         let qv = clip.embed_text(q).unwrap();
         let mut scored: Vec<(i64, f32)> = Vec::new();
