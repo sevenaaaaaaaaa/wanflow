@@ -46,6 +46,7 @@ pub fn run() {
             commands::list_media,
             commands::stats,
             commands::set_decision,
+            commands::develop_page,
             commands::undo_last,
             commands::redo_last,
             commands::history,

@@ -702,6 +702,54 @@ pub fn set_decision(
     Ok(label)
 }
 
+/// 「显影一页」：保留 + 其余转待定，合成一个可撤销动作。
+/// 分成两次 set_decision 会在撤销时只回退一半，所以这里一次事务写完整组。
+#[tauri::command]
+pub fn develop_page(
+    state: State<'_, AppState>,
+    keep_ids: Vec<i64>,
+    rest_ids: Vec<i64>,
+) -> Result<String, String> {
+    if keep_ids.is_empty() {
+        return Err("这一页至少留一张".into());
+    }
+    let mut seen = std::collections::HashSet::new();
+    let keep: Vec<i64> = keep_ids.into_iter().filter(|id| seen.insert(*id)).collect();
+    let rest: Vec<i64> = rest_ids
+        .into_iter()
+        .filter(|id| !seen.contains(id))
+        .collect();
+    let label = if rest.is_empty() {
+        format!("显影 {} 张", keep.len())
+    } else {
+        format!("显影 {} 张 · 其余 {} 张转待定", keep.len(), rest.len())
+    };
+
+    let mut conn = lock(&state.db);
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    tx.execute(
+        "INSERT INTO actions(kind, label, created_at) VALUES ('decide', ?1, ?2)",
+        rusqlite::params![label, db::now_secs()],
+    )
+    .map_err(|e| e.to_string())?;
+    let action_id = tx.last_insert_rowid();
+    {
+        let mut stmt = tx
+            .prepare("INSERT INTO verdicts(action_id, media_id, decision, stars) VALUES (?1, ?2, ?3, ?4)")
+            .map_err(|e| e.to_string())?;
+        for id in &keep {
+            stmt.execute(rusqlite::params![action_id, id, "keep", None::<i64>])
+                .map_err(|e| e.to_string())?;
+        }
+        for id in &rest {
+            stmt.execute(rusqlite::params![action_id, id, "pending", None::<i64>])
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    tx.commit().map_err(|e| e.to_string())?;
+    Ok(label)
+}
+
 #[tauri::command]
 pub fn undo_last(state: State<'_, AppState>) -> Result<Option<String>, String> {
     let conn = lock(&state.db);

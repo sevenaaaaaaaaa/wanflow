@@ -64,8 +64,9 @@ button.danger:hover { background: var(--danger-soft); }
 button:disabled { opacity: .45; cursor: default; }
 button:disabled:hover { background: transparent; }
 
-/* 兼容旧写法：裸 <button> 在面板里 */
-button:not(.btn):not(.primary):not(.ghost):not(.icon-btn):not(.cellbtn) {
+/* 兼容旧写法：裸 <button> 在面板里。
+   用 :where() 把特异性降到 0，组件自己的 .class 规则才能覆盖它 */
+:where(button:not(.btn):not(.primary):not(.ghost):not(.icon-btn):not(.cellbtn)) {
   height: 30px;
   padding: 0 12px;
   border: 1px solid var(--border-1);
@@ -76,7 +77,7 @@ button:not(.btn):not(.primary):not(.ghost):not(.icon-btn):not(.cellbtn) {
   font-weight: 500;
   transition: background var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out);
 }
-button:not(.btn):not(.primary):not(.ghost):not(.icon-btn):not(.cellbtn):hover { background: var(--hover); }
+:where(button:not(.btn):not(.primary):not(.ghost):not(.icon-btn):not(.cellbtn)):hover { background: var(--hover); }
 button.primary { background: var(--text-1); border-color: transparent; color: var(--bg-0); }
 
 input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer; }
@@ -499,6 +500,8 @@ kbd {
 }
 .undo-toast button { height: 24px; padding: 0 10px; border: none; background: transparent; color: var(--accent-ink); font-weight: 600; border-radius: var(--r-pill); }
 .undo-toast button:hover { background: var(--accent-soft); }
+/* 故事线里把状态条放进顶栏中央，别盖住当天页眉 */
+.undo-toast.toast-top { top: 9px; bottom: auto; }
 @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 8px); } }
 
 /* ── 弹窗 / 抽屉 ────────────────────────────────────────── */

@@ -230,6 +230,8 @@ export const api = {
   stats: () => invoke<Stats>("stats"),
   setDecision: (ids: number[], decision: string | null, stars: number | null) =>
     invoke<string>("set_decision", { ids, decision, stars }),
+  developPage: (keepIds: number[], restIds: number[]) =>
+    invoke<string>("develop_page", { keepIds, restIds }),
   undoLast: () => invoke<string | null>("undo_last"),
   redoLast: () => invoke<string | null>("redo_last"),
   history: (limit?: number) => invoke<HistoryEntry[]>("history", { limit }),
@@ -258,12 +260,19 @@ export const api = {
   exportStatus: () => invoke<ScanStatus>("export_status"),
 };
 
+function readable(path: string | null): string {
+  if (!path) return "";
+  // 演示数据 / 远程图直接可用；Tauri 本地路径交给 asset 协议。
+  if (path.startsWith("data:") || path.startsWith("http:") || path.startsWith("https:")) return path;
+  return convertFileSrc(path);
+}
+
 export function thumbUrl(m: MediaItem): string {
-  return m.thumb ? convertFileSrc(m.thumb) : "";
+  return readable(m.thumb);
 }
 
 export function previewUrl(m: MediaItem): string {
-  return m.preview ? convertFileSrc(m.preview) : m.thumb ? convertFileSrc(m.thumb) : "";
+  return readable(m.preview || m.thumb);
 }
 
 export function assetUrl(path: string): string {

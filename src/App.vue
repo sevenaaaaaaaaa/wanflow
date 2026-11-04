@@ -16,6 +16,7 @@ import SmartPanel from "./components/SmartPanel.vue";
 import Arena from "./components/Arena.vue";
 import ExportModal from "./components/ExportModal.vue";
 import CommandPalette from "./components/CommandPalette.vue";
+import Storyline from "./components/Storyline.vue";
 import type { Cmd } from "./types";
 import Icon from "./components/Icon.vue";
 
@@ -43,6 +44,8 @@ let unlisteners: (() => void)[] = [];
 
 // —— 撤销 toast ——
 const undoToast = ref<string | null>(null);
+const undoSteps = ref(1);
+const redoSteps = ref(1);
 let undoTimer: number | undefined;
 
 // —— 浮层 ——
@@ -59,6 +62,15 @@ const showExport = ref(false);
 
 // —— 命令面板 ——
 const paletteOpen = ref(false);
+
+// —— 视图：故事线（默认）/ 网格 ——
+type View = "story" | "grid";
+const view = ref<View>("story");
+const revision = ref(0);
+function setView(v: View) {
+  view.value = v;
+  localStorage.setItem("wanflow-view", v);
+}
 
 // —— 主题 ——
 const theme = ref<"dark" | "light">("dark");
@@ -180,21 +192,41 @@ function advance(delta: number) {
   if (next >= 0 && next < items.value.length) lightboxIdx.value = next;
 }
 
-async function undo() {
-  const label = await api.undoLast();
-  showToast(label ? `已撤销：${label}` : "没有可撤销的操作");
+// 一次显影是两个批次（保留 + 其余转待定），撤销/重做要按整组走
+async function undo(steps = undoSteps.value) {
+  let label: string | null = null;
+  for (let i = 0; i < steps; i++) label = await api.undoLast();
+  revision.value++;
+  undoSteps.value = 1;
+  redoSteps.value = steps;
+  announce(label ? `已撤销：${label}` : "没有可撤销的操作");
   await refresh();
 }
-async function redo() {
-  const label = await api.redoLast();
-  showToast(label ? `已重做：${label}` : "没有可重做的操作");
+async function redo(steps = redoSteps.value) {
+  let label: string | null = null;
+  for (let i = 0; i < steps; i++) label = await api.redoLast();
+  revision.value++;
+  undoSteps.value = steps;
+  redoSteps.value = 1;
+  announce(label ? `已重做：${label}` : "没有可重做的操作");
   await refresh();
 }
 
-function showToast(msg: string) {
+function announce(msg: string) {
   undoToast.value = msg;
   if (undoTimer) window.clearTimeout(undoTimer);
   undoTimer = window.setTimeout(() => (undoToast.value = null), 5000);
+}
+
+function showToast(msg: string, steps = 1) {
+  undoSteps.value = steps;
+  redoSteps.value = 1;
+  announce(msg);
+}
+
+function onDeveloped(p: { label: string; steps: number }) {
+  showToast(p.label, p.steps);
+  refresh();
 }
 
 async function openHistory() {
@@ -242,6 +274,11 @@ function onKey(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
     e.preventDefault();
     paletteOpen.value = !paletteOpen.value;
+    return;
+  }
+  if ((e.metaKey || e.ctrlKey) && (e.key === "1" || e.key === "2")) {
+    e.preventDefault();
+    setView(e.key === "1" ? "story" : "grid");
     return;
   }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
@@ -310,6 +347,8 @@ const commands = computed<Cmd[]>(() => {
     { id: "redo", group: "输出", label: "重做", kbd: "⇧⌘Z", run: redo },
     { id: "history", group: "输出", label: "操作历史…", run: openHistory },
     { id: "theme", group: "界面", label: theme.value === "dark" ? "切到亮色" : "切到暗色", run: toggleTheme },
+    { id: "view-story", group: "视图", label: "故事线：一天一页，定量显影", kbd: "⌘1", run: () => setView("story") },
+    { id: "view-grid", group: "视图", label: "网格：逐张浏览", kbd: "⌘2", run: () => setView("grid") },
     ...FILTERS.map<Cmd>((f) => ({ id: `f-${f.key}`, group: "视图", label: `筛选：${f.label}`, run: () => setFilter(f.key) })),
   ];
   return out;
@@ -318,21 +357,27 @@ const commands = computed<Cmd[]>(() => {
 onMounted(async () => {
   const saved = localStorage.getItem("wanflow-theme");
   if (saved === "light" || saved === "dark") theme.value = saved;
+  const savedView = localStorage.getItem("wanflow-view");
+  if (savedView === "story" || savedView === "grid") view.value = savedView;
   applyTheme();
 
   document.addEventListener("keydown", onKey);
-  unlisteners = await Promise.all([
-    listen<ScanStatus>("analyze://progress", (e) => (analyze.value = e.payload)),
-    listen("analyze://done", async () => {
-      analyze.value = { running: false, phase: "完成", done: 0, total: 0, current: "" };
-      await refresh();
-      showToast("质量分析完成，初筛建议已生成");
-    }),
-    listen<string>("analyze://error", async (e) => {
-      analyze.value = { running: false, phase: e.payload, done: 0, total: 0, current: "" };
-      showToast(`分析失败: ${e.payload}`);
-    }),
-  ]);
+  try {
+    unlisteners = await Promise.all([
+      listen<ScanStatus>("analyze://progress", (e) => (analyze.value = e.payload)),
+      listen("analyze://done", async () => {
+        analyze.value = { running: false, phase: "完成", done: 0, total: 0, current: "" };
+        await refresh();
+        showToast("质量分析完成，初筛建议已生成");
+      }),
+      listen<string>("analyze://error", async (e) => {
+        analyze.value = { running: false, phase: e.payload, done: 0, total: 0, current: "" };
+        showToast(`分析失败: ${e.payload}`);
+      }),
+    ]);
+  } catch {
+    // 浏览器预览（无 Tauri 事件总线）时静默降级，不影响页面与演示数据。
+  }
   await refresh();
   const s = await api.getScanStatus();
   if (s.running) { scan.value = s; pollScan(); }
@@ -356,7 +401,12 @@ const progressPct = computed(() =>
       <span class="brand">Wan<em>Flow</em></span>
       <span class="chip">{{ stats?.total ?? 0 }} 张 · {{ fmtBytes(stats?.bytes ?? 0) }}</span>
 
-      <div class="seg" role="tablist" aria-label="筛选">
+      <div class="seg" role="tablist" aria-label="视图">
+        <button :class="{ on: view === 'story' }" @click="setView('story')">故事线</button>
+        <button :class="{ on: view === 'grid' }" @click="setView('grid')">网格</button>
+      </div>
+
+      <div class="seg" v-if="view === 'grid'" role="tablist" aria-label="筛选">
         <button
           v-for="f in FILTERS"
           :key="f.key"
@@ -367,11 +417,11 @@ const progressPct = computed(() =>
 
       <span class="spacer"></span>
 
-      <label class="hint" style="display: flex; align-items: center; gap: 6px">
+      <label v-if="view === 'grid'" class="hint" style="display: flex; align-items: center; gap: 6px">
         <input type="checkbox" v-model="dupOnly" @change="refresh" /> 仅重复组
       </label>
 
-      <select v-model="sort" @change="refresh" aria-label="排序">
+      <select v-if="view === 'grid'" v-model="sort" @change="refresh" aria-label="排序">
         <option value="time">拍摄时间</option>
         <option value="added">导入顺序</option>
         <option value="name">文件名</option>
@@ -380,6 +430,7 @@ const progressPct = computed(() =>
         <option value="quality">质量最差优先</option>
       </select>
       <button
+        v-if="view === 'grid'"
         class="icon-btn"
         :title="dir === 'asc' ? '正序（点击切倒序）' : '倒序（点击切正序）'"
         @click="dir = dir === 'asc' ? 'desc' : 'asc'; refresh()"
@@ -416,6 +467,14 @@ const progressPct = computed(() =>
 
     <!-- 主区域 -->
     <EmptyState v-if="!hasLibrary && !scan.running" @pick="pickAndScan" />
+    <Storyline
+      v-else-if="view === 'story'"
+      :revision="revision"
+      @changed="onDeveloped"
+      @toast="showToast"
+      @grid="setView('grid')"
+      @export="showExport = true"
+    />
     <PhotoGrid
       v-else
       :items="items"
@@ -432,7 +491,7 @@ const progressPct = computed(() =>
     />
 
     <!-- 底部 Dock：统计 / 选区动作栏 + 命令入口 -->
-    <div class="dock" v-if="hasLibrary">
+    <div class="dock" v-if="hasLibrary && view === 'grid'">
       <template v-if="selection.size > 0">
         <div class="actionbar">
           <span class="count">{{ focusHint }}</span>
@@ -532,9 +591,9 @@ const progressPct = computed(() =>
     <Arena v-if="arenaGroup !== null" :group="arenaGroup" @close="arenaGroup = null" @refresh="refresh" />
 
     <!-- 撤销 toast -->
-    <div class="undo-toast" v-if="undoToast">
+    <div class="undo-toast" :class="{ 'toast-top': view === 'story' }" v-if="undoToast">
       <span>{{ undoToast }}</span>
-      <button @click="undo()">撤销</button>
+      <button @click="undo(undoSteps)">撤销</button>
       <button style="color: var(--text-3)" @click="undoToast = null">✕</button>
     </div>
   </div>
