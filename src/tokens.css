@@ -50,17 +50,17 @@
 [data-theme="light"] {
   color-scheme: light;
   /* 暖绿纸 */
-  --bg-0: oklch(94.2% .010 118);
-  --bg-1: oklch(96.4% .010 118);
-  --surface-1: oklch(98.4% .006 125);
-  --surface-2: oklch(99.3% .004 130);
+  --bg-0: oklch(97.4% .004 120);
+  --bg-1: oklch(98.8% .003 120);
+  --surface-1: oklch(100% 0 0);
+  --surface-2: oklch(100% 0 0);
   --surface-3: oklch(100% 0 0);
-  --text-1: oklch(24% .006 130);
-  --text-2: oklch(37% .006 130);
-  --text-3: oklch(46% .005 130);
-  --text-4: oklch(61% .005 130);
-  --border-1: oklch(from var(--text-1) l c h / .08);
-  --border-2: oklch(from var(--text-1) l c h / .16);
+  --text-1: oklch(21% .006 130);
+  --text-2: oklch(33% .006 130);
+  --text-3: oklch(44% .005 130);
+  --text-4: oklch(57% .005 130);
+  --border-1: oklch(from var(--text-1) l c h / .11);
+  --border-2: oklch(from var(--text-1) l c h / .20);
   --hover: oklch(from var(--text-1) l c h / .05);
   --hover-strong: oklch(from var(--text-1) l c h / .09);
   --selected: oklch(from var(--accent) l c h / .08);
