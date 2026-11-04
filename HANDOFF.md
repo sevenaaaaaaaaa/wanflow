@@ -162,4 +162,6 @@ node /tmp/wf-look.mjs                        # CDP 1440×900
 
 **下一个动作**：`npm run tauri dev` 用真实照片看故事线。如果仍觉得"不够创新"，下一刀建议动信息架构（按人/地点/事件成页，而不是日期），不要再加动效。
 
+**补记（同日）**：CDP 回归发现撤销显影后精选册页还在（`kept` 回退到 14 张，但 `developedDays` 只记了日期，页仍按当天历史 keep 渲染）。改成 `Record<dayKey, keepId[]>`：显影时记下这一页的 ids，精选册只显示「这些 ids 现在仍是 keep」的页；撤销后自然消失，重做后自动回来。旧 localStorage 数组自动迁移。复测 START 10 天/0 mini → 显影 9 天/1 mini/18 张 → ⌘Z 10 天/**0 mini**/14 张 → ⇧⌘Z 9 天/1 mini/18 张。
+
 **回滚**：`git revert de37a90`。

@@ -44,6 +44,6 @@ v0.1.0（未发版）。**从导入到交付的闭环已打通**：导入（文�
 
 | 日期 | 做了什么 | 回滚方式 |
 |---|---|---|
+| 2026-11-05 | `fix`: 撤销显影后精选册页同步消失（developedDays 改记 keep ids）— 4f5f6ff | `git revert 4f5f6ff` |
 | 2026-11-05 | `fix`: 故事线去纸板/快门/飞行特效（单张纸 + 淡出），演示照片改为 5 个摄影场景 — de37a90 | `git revert de37a90` |
 | 2026-11-05 | `feat`: 故事线视图（一天一页 + 定量显影 + 原子显影命令 `develop_page` + 撤销/重做整组同步）— 0072d5a | `git revert 0072d5a` |
-| 2026-11-04 | `feat`: 交互重构（`src/tokens.css` + `CommandPalette.vue` + `Icon.vue` + 网格键盘导航 + 浮动 Dock + 明暗主题）— 7637298 | `git revert 7637298` |
