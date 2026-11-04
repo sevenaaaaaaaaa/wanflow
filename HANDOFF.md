@@ -131,3 +131,35 @@ CDP 实测（1440×900，headless）：初始 10 天 / 15 张待挑；显影后 
 **下一个动作**：`npm run tauri dev` 用真实库试用 ⌘1 故事线；再按反馈调"张数刻度"和"换掉"的手感。
 
 **回滚**：`git revert 0072d5a`。
+
+---
+
+## 2026-11-05 · DSH / lead —— 去特效：单张纸 + 摄影感演示图
+
+**用户诉求**：「照片的魔法特效、堆叠特效不太好」。
+
+**判断**：功能没坏，坏在两种"假"：
+1) 演示照片像插画（高饱和渐变 + 发光大球 + 山），不是照片；
+2) 页面像舞台道具（纸下再垫一张旋转的纸、精选册 mini 页歪着、显影后整页飞向右侧、快门白光）。
+
+**做了什么**（提交 `de37a90`）：
+- `src/components/Storyline.vue`：删除 `.paper-under` 与整段 CSS，页面只留一张纸（内高光 + 两层柔和投影）；`pageTurn` 改为 260ms 淡入 + 上移 7px（去掉 rotateY / transform-origin）；显影从"飞进精选册"改为淡出 220ms 后重读；删除 `.shutter` 白闪；精选册 mini 页去掉 `--rot` 旋转与弹跳，ghost page 也不再倾斜。显影成功后仍走原子命令 `develop_page`，⌘Z/⇧⌘Z 整组撤销/重做不变。
+- `src/dev/mock.ts`：重写 `photo()` 为 5 个摄影场景（暮色山脊 / 夜色散景 / 窗边逆光 / 海面薄雾 / 林间散景），每场景 2 个配色变体；seeded PRNG 固定构图，统一 110 颗颗粒 + 暗角。窗景有窗棂、窗台、锚在左下角的前景失焦绿植；林景有树冠阴影与两侧柔边树干。
+
+**验证**：
+```bash
+cd /Users/seveno/WanFlow && npm run build   # ✓ 52 modules，css 45.40 kB / js 162.63 kB
+node /tmp/wf-look.mjs                        # CDP 1440×900
+```
+- 初始：10 天 / 15 张 / 4 槽 / 0 mini / 无 shutter / 无 paper-under；点显影后 9 天、1 mini、toast「显影 4 张 · 其余 11 张转待定」。
+- 截图：/tmp/wf-look1.png（页面）、/tmp/wf-look2.png（显影后）；单张样片 /tmp/wf-forest.png、/tmp/wf-one-2.png（窗景）。
+- 生产构建里 mock 被 `import.meta.env.PROD` 短路并 tree-shake，所以改演示图不会改 bundle hash（属预期，不是没生效）。
+
+**踩过的坑**：
+- 暗背景上叠 4% 平涂大椭圆会露出硬边，像镜头污渍；改成"树冠渐变 + 柔边树干"。
+- 窗景只有竖向帘影会像白墙；加窗棂/窗台/前景绿植后，才读得出是室内。
+- `git add -A` 依旧禁用；本轮只提交 `src/components/Storyline.vue` 与 `src/dev/mock.ts`。
+
+**下一个动作**：`npm run tauri dev` 用真实照片看故事线。如果仍觉得"不够创新"，下一刀建议动信息架构（按人/地点/事件成页，而不是日期），不要再加动效。
+
+**回滚**：`git revert de37a90`。
