@@ -48,18 +48,27 @@ interface Page {
 const kept = ref<MediaItem[]>([]);
 // 只把「这一轮显影过的日子」收进精选册；保留名单本身从 kept 推导，撤销/重做才会同步
 const DAYS_KEY = "wanflow-developed-days";
-const developedDays = ref<string[]>([]);
+// 记「这一天显影了哪几张」。撤销后这几张不再是 keep，就当这页没显影过；重做后自动回来。
+const developedDays = ref<Record<string, number[]>>({});
 try {
   const raw = localStorage.getItem(DAYS_KEY);
-  if (raw) developedDays.value = JSON.parse(raw);
+  if (raw) {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      const migrated: Record<string, number[]> = {};
+      for (const key of parsed) migrated[String(key)] = [];
+      developedDays.value = migrated;
+    } else if (parsed && typeof parsed === "object") {
+      developedDays.value = parsed as Record<string, number[]>;
+    }
+  }
 } catch { /* 本地存储不可用就不记忆 */ }
-function rememberDay(key: string) {
-  if (developedDays.value.includes(key)) return;
-  developedDays.value = [...developedDays.value, key];
+function rememberDay(key: string, ids: number[]) {
+  developedDays.value = { ...developedDays.value, [key]: ids };
   try { localStorage.setItem(DAYS_KEY, JSON.stringify(developedDays.value)); } catch { /* 忽略 */ }
 }
 const developed = computed<Page[]>(() => {
-  const show = new Set(developedDays.value);
+  const show = developedDays.value;
   const map = new Map<string, MediaItem[]>();
   for (const m of kept.value) {
     const key = dayKey(m.effTime);
@@ -69,7 +78,10 @@ const developed = computed<Page[]>(() => {
   }
   const out: Page[] = [];
   for (const [key, list] of map) {
-    if (!show.has(key)) continue;
+    const ids = show[key];
+    if (!ids) continue;
+    // 有记录就要求当初显影的那几张现在仍是 keep；撤销后自然隐藏
+    if (ids.length && !ids.every((id) => list.some((m) => m.id === id))) continue;
     list.sort((a, b) => a.effTime - b.effTime);
     out.push({ key, ts: list[0].effTime, count: list.length, thumbs: list.slice(0, 4).map((m) => thumbUrl(m)) });
   }
@@ -387,7 +399,7 @@ async function develop() {
   flashing.value = true;
   try {
     await Promise.all([api.developPage(keepIds, restIds), wait(140)]);
-    rememberDay(day.key);
+    rememberDay(day.key, keepIds);
     // 页面淡出后重读待挑 + 已保留（精选册由 kept 推导，撤销后自动回退）
     leaving.value = true;
     await wait(240);
