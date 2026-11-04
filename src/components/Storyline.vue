@@ -386,11 +386,11 @@ async function develop() {
   busy.value = true;
   flashing.value = true;
   try {
-    await Promise.all([api.developPage(keepIds, restIds), wait(320)]);
+    await Promise.all([api.developPage(keepIds, restIds), wait(140)]);
     rememberDay(day.key);
-    // 页面「飞」进右侧精选册，再重读待挑 + 已保留（精选册由 kept 推导，撤销后自动回退）
+    // 页面淡出后重读待挑 + 已保留（精选册由 kept 推导，撤销后自动回退）
     leaving.value = true;
-    await wait(500);
+    await wait(240);
     await load(true);
     const label = "显影 " + keepIds.length + " 张" + (restIds.length ? " · 其余 " + restIds.length + " 张转待定" : "");
     emit("changed", { label, steps: 1 });
@@ -510,7 +510,6 @@ onMounted(async () => {
 
           <div class="page-area">
             <div class="spread-wrap">
-              <div class="paper-under" aria-hidden="true"></div>
               <div
                 class="spread"
                 :data-n="chosen.length"
@@ -538,7 +537,6 @@ onMounted(async () => {
                 <span class="folio">第 {{ folio }} 页 · {{ chosen.length }} 张</span>
               </div>
               <div v-if="dragOver" class="drop-hint">松手，加入这一页</div>
-              <div v-if="flashing" class="shutter"></div>
               </div>
             </div>
 
@@ -624,7 +622,7 @@ onMounted(async () => {
             v-for="(p, i) in developed"
             :key="p.key"
             class="mini"
-            :style="{ '--i': i, '--rot': i % 2 ? '0.7deg' : '-0.5deg' }"
+            :style="{ '--i': i }"
           >
             <div class="mini-grid" :data-n="p.thumbs.length">
               <img v-for="(t, j) in p.thumbs" :key="j" :src="t" alt="" draggable="false" />
@@ -830,24 +828,10 @@ onMounted(async () => {
   display: grid;
   place-items: center;
   min-height: 0;
-  animation: pageTurn 440ms var(--ease-out) both;
-  transform-origin: 18% 62%;
-}
-/* 纸下面再垫一页：像真正的相册，而不是一张截图 */
-.paper-under {
-  grid-area: 1 / 1;
-  width: min(100%, calc((100vh - 332px) * 1.3333), 900px);
-  min-width: 320px;
-  aspect-ratio: 4 / 3;
-  border-radius: 3px;
-  background: oklch(92.5% .012 95);
-  transform: rotate(-.9deg) translate(9px, 7px);
-  box-shadow: 0 18px 40px -34px oklch(0% 0 0 / .5);
-  pointer-events: none;
-  z-index: 0;
+  animation: pageTurn 260ms var(--ease-out) both;
 }
 @keyframes pageTurn {
-  from { opacity: 0; transform: perspective(1500px) rotateY(-7deg) translateX(20px) scale(.99); }
+  from { opacity: 0; transform: translateY(7px); }
   to { opacity: 1; transform: none; }
 }
 .spread {
@@ -862,9 +846,10 @@ onMounted(async () => {
   background: var(--paper, oklch(97% .012 95));
   color: oklch(30% .012 85);
   box-shadow:
-    0 30px 60px -30px oklch(10% .02 150 / .55),
-    0 2px 6px oklch(10% .02 150 / .18),
-    0 0 0 .5px oklch(30% .02 95 / .18);
+    0 1px 0 oklch(100% 0 0 / .55) inset,
+    0 0 0 .5px oklch(30% .02 95 / .16),
+    0 10px 26px -16px oklch(10% .02 150 / .5),
+    0 30px 60px -40px oklch(10% .02 150 / .38);
   display: flex;
   flex-direction: column;
   transition: transform var(--dur-4) var(--ease-spring), box-shadow var(--dur-4) var(--ease-out);
@@ -893,10 +878,10 @@ onMounted(async () => {
 .spread.leaving {
   pointer-events: none;
   opacity: 0;
-  transform: translateX(34vw) translateY(-3vh) scale(.14) rotate(3deg);
+  transform: translateY(-5px) scale(.992);
   transition:
-    transform 460ms cubic-bezier(.4, 0, .2, 1),
-    opacity 460ms cubic-bezier(.55, 0, .8, .2);
+    transform 220ms var(--ease-out),
+    opacity 200ms var(--ease-out);
 }
 .slots {
   flex: 1;
@@ -981,20 +966,6 @@ onMounted(async () => {
 .slot-enter-from { opacity: 0; transform: scale(.94) translateY(10px); }
 .slot-leave-to { opacity: 0; transform: scale(.96); }
 .slot-move { transition: transform var(--dur-4) var(--ease-spring); }
-
-.shutter {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: 3px;
-  background: radial-gradient(80% 70% at 50% 50%, oklch(100% 0 0 / .92), oklch(100% 0 0 / 0) 72%);
-  animation: shutter var(--dur-4) var(--ease-out) forwards;
-}
-@keyframes shutter {
-  0% { opacity: 0; transform: scale(1.02); }
-  18% { opacity: 1; }
-  100% { opacity: 0; transform: scale(1.04); }
-}
 
 .compose {
   display: flex;
@@ -1235,8 +1206,7 @@ onMounted(async () => {
   padding: 6px;
   border-radius: 2px;
   background: oklch(97% .012 95);
-  box-shadow: 0 10px 20px -14px oklch(0% 0 0 / .7), 0 0 0 .5px oklch(30% .02 95 / .14);
-  transform: rotate(-2.5deg);
+  box-shadow: 0 6px 14px -10px oklch(0% 0 0 / .6), 0 0 0 .5px oklch(30% .02 95 / .12);
 }
 .ghost-page span { background: oklch(90% .01 95); border-radius: 1px; }
 .ghost-page span:first-child { background: oklch(86% .02 160); }
@@ -1246,13 +1216,12 @@ onMounted(async () => {
   padding: 5px 5px 4px;
   border-radius: 2px;
   color: oklch(30% .012 85);
-  box-shadow: 0 8px 18px -12px oklch(0% 0 0 / .55), 0 0 0 .5px oklch(30% .02 95 / .16);
-  transform: rotate(var(--rot, 0deg));
-  animation: pageIn var(--dur-4) var(--ease-spring) both;
+  box-shadow: 0 6px 16px -12px oklch(0% 0 0 / .5), 0 0 0 .5px oklch(30% .02 95 / .14);
+  animation: pageIn 260ms var(--ease-out) both;
 }
 @keyframes pageIn {
-  from { opacity: 0; transform: translateY(-14px) rotate(2deg) scale(.96); }
-  to { opacity: 1; transform: rotate(var(--rot, 0deg)); }
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: none; }
 }
 .mini-grid { display: grid; gap: 2px; aspect-ratio: 4 / 3; }
 .mini-grid[data-n="1"] { grid-template-columns: 1fr; }
@@ -1328,7 +1297,7 @@ onMounted(async () => {
 @media (max-width: 920px) {
   .timeline { display: none; }
   .stage { padding: 14px 16px; }
-  .spread, .paper-under { width: 100%; min-width: 0; }
+  .spread { width: 100%; min-width: 0; }
   .compose-count { min-width: 0; }
   .cc-sub { display: none; }
   .strip-hint { display: none; }

@@ -7,23 +7,153 @@ function hasTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
+/** 确定性伪随机：同一张演示图每次渲染都一样 */
+function seeded(seed: number): () => number {
+  let t = seed >>> 0;
+  return () => {
+    t += 0x6d2b79f5;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** 演示缩略图：暮色山脊 / 夜色散景 / 窗光 / 海面薄雾 / 林间散景。
+ *  刻意避开「发光大球 + 高饱和渐变」的插画感，用低饱和、空气透视和颗粒靠近真实照片。 */
 function photo(seed: number, w = 640, h = 480): string {
-  const hue = (seed * 37) % 360;
-  const sun = 18 + ((seed * 29) % 62);
-  const horizon = 118 + ((seed * 17) % 46);
-  const hill1 = horizon + 6 + ((seed * 7) % 22);
+  const rand = seeded(seed);
+  const scene = seed % 5;
+  const variant = Math.floor(seed / 5) % 2;
+  const defs: string[] = [];
+  const parts: string[] = [];
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+  let dark = false;
+
+  defs.push(
+    '<radialGradient id="v" cx=".5" cy=".46" r=".74">' +
+      '<stop offset=".55" stop-color="#000" stop-opacity="0"/>' +
+      '<stop offset="1" stop-color="#000" stop-opacity=".36"/></radialGradient>',
+  );
+
+  if (scene === 0) {
+    // 暮色山脊：低饱和天空 + 空气透视
+    const sunX = 70 + rand() * 170;
+    const hor = 130 + rand() * 18;
+    const sky = variant
+      ? ['#7d8f9d', '#b7b3a6', '#ecd2b4']
+      : ['#66798c', '#a9a69c', '#e2c5a5'];
+    defs.push(
+      `<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/>` +
+        `<stop offset=".52" stop-color="${sky[1]}"/><stop offset=".92" stop-color="${sky[2]}"/></linearGradient>`,
+    );
+    defs.push(
+      '<radialGradient id="sun"><stop offset="0" stop-color="#ffe7c2" stop-opacity=".9"/>' +
+        '<stop offset=".34" stop-color="#ffd7a6" stop-opacity=".38"/>' +
+        '<stop offset="1" stop-color="#ffd7a6" stop-opacity="0"/></radialGradient>',
+    );
+    parts.push('<rect width="320" height="240" fill="url(#sky)"/>');
+    parts.push(`<circle cx="${r2(sunX)}" cy="${r2(hor - 28)}" r="${r2(30 + rand() * 12)}" fill="url(#sun)"/>`);
+    parts.push(`<circle cx="${r2(sunX)}" cy="${r2(hor - 28)}" r="${r2(3.6 + rand() * 1.6)}" fill="#fff3d8" opacity=".9"/>`);
+    parts.push(`<path d="M0 ${r2(hor)} Q 70 ${r2(hor - 18)} 140 ${r2(hor - 4)} T 320 ${r2(hor - 10)} V240 H0Z" fill="#80878a" opacity=".42"/>`);
+    parts.push(`<path d="M0 ${r2(hor + 14)} Q 90 ${r2(hor - 2)} 180 ${r2(hor + 18)} T 320 ${r2(hor + 6)} V240 H0Z" fill="#4c5350" opacity=".78"/>`);
+    parts.push(`<path d="M0 ${r2(hor + 42)} Q 80 ${r2(hor + 20)} 170 ${r2(hor + 38)} T 320 ${r2(hor + 28)} V240 H0Z" fill="#2b312d"/>`);
+    parts.push(`<rect x="0" y="${r2(hor - 16)}" width="320" height="34" fill="${sky[2]}" opacity=".12"/>`);
+  } else if (scene === 1) {
+    // 夜色散景：失焦的城市灯光
+    dark = true;
+    defs.push('<linearGradient id="bg" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="#15222c"/><stop offset="1" stop-color="#050a0d"/></linearGradient>');
+    const cols = variant ? ['#f2b56e', '#d6c7a8', '#9fc4cf'] : ['#8ec3d6', '#e6dfcd', '#e8a469'];
+    cols.forEach((c, i) => {
+      defs.push(`<radialGradient id="k${i}"><stop offset="0" stop-color="${c}" stop-opacity=".95"/><stop offset=".5" stop-color="${c}" stop-opacity=".38"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></radialGradient>`);
+    });
+    parts.push('<rect width="320" height="240" fill="url(#bg)"/>');
+    for (let i = 0; i < 18; i++) {
+      const x = 10 + rand() * 300;
+      const y = 20 + rand() * 200;
+      const rad = 2 + rand() * rand() * 15;
+      parts.push(`<circle cx="${r2(x)}" cy="${r2(y)}" r="${r2(rad)}" fill="url(#k${i % 3})" opacity="${r2(.22 + rand() * .5)}"/>`);
+    }
+    parts.push('<rect x="0" y="176" width="320" height="64" fill="#04080b" opacity=".5"/>');
+    parts.push(`<circle cx="${r2(36 + rand() * 248)}" cy="${r2(58 + rand() * 90)}" r="1.6" fill="#fff8e8" opacity=".9"/>`);
+  } else if (scene === 2) {
+    // 窗边逆光：暖墙 + 窗棂 + 失焦绿植，像室内随手拍
+    const warm = variant ? ['#e8dfd1', '#b6a795'] : ['#f0e6d7', '#c2b09c'];
+    defs.push(`<linearGradient id="bg" x1="0" y1="0" x2=".2" y2="1"><stop offset="0" stop-color="${warm[0]}"/><stop offset="1" stop-color="${warm[1]}"/></linearGradient>`);
+    defs.push('<linearGradient id="win" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffaf0"/><stop offset=".7" stop-color="#f7e9d2"/><stop offset="1" stop-color="#e9d4b6"/></linearGradient>');
+    defs.push('<radialGradient id="lt"><stop offset="0" stop-color="#fff8ea" stop-opacity=".6"/><stop offset=".6" stop-color="#fff0d8" stop-opacity=".2"/><stop offset="1" stop-color="#fff0d8" stop-opacity="0"/></radialGradient>');
+    defs.push('<radialGradient id="leaf"><stop offset="0" stop-color="#1f2b1c" stop-opacity=".52"/><stop offset=".6" stop-color="#1f2b1c" stop-opacity=".28"/><stop offset="1" stop-color="#1f2b1c" stop-opacity="0"/></radialGradient>');
+    parts.push('<rect width="320" height="240" fill="url(#bg)"/>');
+    const wx = 168 + rand() * 26;
+    parts.push(`<rect x="${r2(wx)}" y="0" width="152" height="202" fill="url(#win)" opacity=".92"/>`);
+    parts.push(`<rect x="${r2(wx)}" y="0" width="152" height="202" fill="url(#lt)"/>`);
+    parts.push(`<rect x="${r2(wx)}" y="0" width="3.4" height="202" fill="#6d5a45" opacity=".16"/>`);
+    parts.push(`<rect x="${r2(wx + 74)}" y="0" width="2.6" height="202" fill="#6d5a45" opacity=".12"/>`);
+    parts.push(`<rect x="${r2(wx)}" y="96" width="152" height="2.6" fill="#6d5a45" opacity=".10"/>`);
+    parts.push(`<rect x="${r2(wx - 16)}" y="198" width="176" height="6" fill="#7a6550" opacity=".18"/>`);
+    parts.push(`<ellipse cx="${r2(wx - 60)}" cy="${r2(96 + rand() * 30)}" rx="110" ry="86" fill="url(#lt)" opacity=".55"/>`);
+    for (let i = 0; i < 3; i++) {
+      const x = 12 + i * 34 + rand() * 14;
+      parts.push(`<rect x="${r2(x)}" y="0" width="${r2(10 + rand() * 14)}" height="210" fill="#5b4a3a" opacity="${r2(.03 + rand() * .03)}"/>`);
+    }
+    const baseX = 14 + rand() * 24;
+    parts.push(`<path d="M${r2(baseX)} 238 Q ${r2(baseX + 26)} 196 ${r2(baseX + 34)} 152" stroke="#24301f" stroke-width="2.4" fill="none" opacity=".2"/>`);
+    for (let i = 0; i < 8; i++) {
+      const t = i / 7;
+      const cx = baseX + 4 + t * 74 + rand() * 14;
+      const cy = 220 - t * 104 + rand() * 16;
+      parts.push(`<ellipse cx="${r2(cx)}" cy="${r2(cy)}" rx="${r2(15 + rand() * 16)}" ry="${r2(6 + rand() * 8)}" fill="url(#leaf)" transform="rotate(${r2(-46 + rand() * 66)} ${r2(cx)} ${r2(cy)})"/>`);
+    }
+    parts.push(`<ellipse cx="${r2(baseX + 4)}" cy="240" rx="42" ry="24" fill="#1f2b1c" opacity=".34"/>`);
+    parts.push('<rect x="0" y="206" width="320" height="34" fill="#6b5947" opacity=".13"/>');
+    for (let i = 0; i < 14; i++) {
+      parts.push(`<circle cx="${r2(rand() * 320)}" cy="${r2(20 + rand() * 180)}" r="${r2(.4 + rand() * 1)}" fill="#fff8e8" opacity="${r2(.08 + rand() * .12)}"/>`);
+    }
+  } else if (scene === 3) {
+    // 海面薄雾：低对比、细浪
+    const hor = 118 + rand() * 14;
+    const sky = variant ? ['#8f9db0', '#d9c4ad', '#e7c6a8'] : ['#c3d3de', '#dcd9cf', '#f0e1cc'];
+    const water = variant ? ['#5f7b88', '#233d4a'] : ['#7c96a0', '#2f4954'];
+    defs.push(`<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset=".7" stop-color="${sky[1]}"/><stop offset="1" stop-color="${sky[2]}"/></linearGradient>`);
+    defs.push(`<linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${water[0]}"/><stop offset="1" stop-color="${water[1]}"/></linearGradient>`);
+    defs.push('<radialGradient id="gl"><stop offset="0" stop-color="#ffe9c8" stop-opacity=".8"/><stop offset="1" stop-color="#ffe9c8" stop-opacity="0"/></radialGradient>');
+    parts.push('<rect width="320" height="240" fill="url(#sky)"/>');
+    parts.push(`<ellipse cx="${r2(200 + rand() * 80)}" cy="${r2(hor - 12)}" rx="${r2(38 + rand() * 22)}" ry="${r2(7 + rand() * 5)}" fill="url(#gl)"/>`);
+    parts.push(`<rect x="0" y="${r2(hor)}" width="320" height="${r2(240 - hor)}" fill="url(#sea)"/>`);
+    parts.push(`<rect x="0" y="${r2(hor)}" width="320" height=".8" fill="#fff" opacity=".22"/>`);
+    parts.push(`<path d="M0 ${r2(hor + 1)} Q 60 ${r2(hor - 4)} 120 ${r2(hor + 2)} T 320 ${r2(hor - 1)} V${r2(hor + 6)} H0Z" fill="#2c3e40" opacity=".22"/>`);
+    for (let i = 0; i < 7; i++) {
+      const y = hor + 8 + i * (100 / 7) + rand() * 4;
+      parts.push(`<path d="M${r2(rand() * 40)} ${r2(y)} Q 90 ${r2(y - 2)} 170 ${r2(y + 1)} T 320 ${r2(y)}" stroke="#fff" stroke-width=".7" fill="none" opacity="${r2(.04 + rand() * .06)}"/>`);
+    }
+  } else {
+    // 林间散景：深绿 + 一点金色光斑
+    dark = true;
+    defs.push('<linearGradient id="bg" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#1a2a1c"/><stop offset="1" stop-color="#080f09"/></linearGradient>');
+    const cols = variant ? ['#d9c58a', '#9fb07a', '#e6d7b4'] : ['#8fae6f', '#c9c08a', '#6f9068'];
+    cols.forEach((c, i) => {
+      defs.push(`<radialGradient id="k${i}"><stop offset="0" stop-color="${c}" stop-opacity=".9"/><stop offset=".5" stop-color="${c}" stop-opacity=".34"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></radialGradient>`);
+    });
+    defs.push('<linearGradient id="canopy" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#040a05" stop-opacity=".82"/><stop offset="1" stop-color="#040a05" stop-opacity="0"/></linearGradient>');
+    defs.push('<linearGradient id="trunk" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#040a06" stop-opacity="0"/><stop offset=".42" stop-color="#040a06" stop-opacity=".62"/><stop offset=".68" stop-color="#040a06" stop-opacity=".48"/><stop offset="1" stop-color="#040a06" stop-opacity="0"/></linearGradient>');
+    parts.push('<rect width="320" height="240" fill="url(#bg)"/>');
+    parts.push('<rect x="0" y="0" width="320" height="112" fill="url(#canopy)"/>');
+    for (let i = 0; i < 20; i++) {
+      const x = rand() * 320;
+      const y = rand() * 240;
+      const rad = 2 + rand() * rand() * 16;
+      parts.push(`<circle cx="${r2(x)}" cy="${r2(y)}" r="${r2(rad)}" fill="url(#k${i % 3})" opacity="${r2(.18 + rand() * .42)}"/>`);
+    }
+    parts.push(`<rect x="${r2(-10 + rand() * 12)}" y="0" width="34" height="240" fill="url(#trunk)" opacity=".6"/>`);
+    parts.push(`<rect x="${r2(286 + rand() * 10)}" y="0" width="38" height="240" fill="url(#trunk)" opacity=".45"/>`);
+  }
+
+  const grain = dark ? "#fff" : "#000";
+  for (let i = 0; i < 110; i++) {
+    parts.push(`<circle cx="${r2(rand() * 320)}" cy="${r2(rand() * 240)}" r="${r2(.25 + rand() * .7)}" fill="${grain}" opacity="${r2(.02 + rand() * .05)}"/>`);
+  }
   const svg =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 320 240">' +
-    '<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1">' +
-    '<stop offset="0" stop-color="hsl(' + hue + ' 42% 78%)"/><stop offset=".62" stop-color="hsl(' + (hue + 16) + ' 46% 62%)"/>' +
-    '<stop offset="1" stop-color="hsl(' + (hue + 26) + ' 38% 44%)"/></linearGradient>' +
-    '<radialGradient id="g" cx=".5" cy=".42" r=".75"><stop offset=".5" stop-color="#000" stop-opacity="0"/>' +
-    '<stop offset="1" stop-color="#000" stop-opacity=".28"/></radialGradient></defs>' +
-    '<rect width="320" height="240" fill="url(#s)"/>' +
-    '<circle cx="' + (sun * 4.6) + '" cy="' + (58 + ((seed * 11) % 34)) + '" r="' + (13 + (seed % 9)) + '" fill="hsl(' + (hue + 48) + ' 88% 86%)" opacity=".85"/>' +
-    '<path d="M0 ' + hill1 + ' Q 62 ' + (horizon - 30) + ' 132 ' + (hill1 - 8) + ' T 320 ' + (hill1 - 2) + ' V240 H0Z" fill="hsl(' + (hue + 120) + ' 20% 30%)" opacity=".92"/>' +
-    '<path d="M0 ' + (hill1 + 34) + ' Q 96 ' + (hill1 + 4) + ' 196 ' + (hill1 + 26) + ' T 320 ' + (horizon + 6) + ' V240 H0Z" fill="hsl(' + (hue + 138) + ' 22% 20%)"/>' +
-    '<rect width="320" height="240" fill="url(#g)"/></svg>';
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 320 240">` +
+    `<defs>${defs.join("")}</defs>${parts.join("")}<rect width="320" height="240" fill="url(#v)"/></svg>`;
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 }
 
