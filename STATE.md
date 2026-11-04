@@ -8,14 +8,15 @@
 ## 一句话现状
 
 v0.1.0（未发版）。**从导入到交付的闭环已打通**：导入（文件夹 / 照片图库 / WebDAV）→ 扫描 → 质量分析 → 去重与连拍分组 → 初筛建议 → 人工决策 → 智能精选 / 语义搜索 → **精选集导出**（dry-run 预览 + 副本导出，支持目录结构、命名模板、剥离 EXIF、改写时间、导出清单幂等）。
-规模：Rust `src-tauri/src` 5195 行 / 前端 `src` 2264 行；**32 个 Tauri 命令**；`cargo test` **40 个测试全绿**；`npm run build` 通过。
+规模：Rust `src-tauri/src` 5195 行 / 前端 `src` 3337 行；**32 个 Tauri 命令**；`cargo test` **40 个测试全绿**；`npm run build` 通过。
+交互：Litmus 风格 token（`src/tokens.css`）+ 键盘优先挑图 + ⌘K 命令面板 + 浮动 Dock 动作栏 + 明暗双主题。
 蓝图 v0.3 里的在线协同（CRDT）、`.wanpack` 整库打包、本地加密库**尚未开始**。
 
 ## 进行中
 
 | 事项 | 状态 | 卡在哪 | 谁在做 |
 |---|---|---|---|
-| — | 无（导出功能已实现、已测、待提交） | — | — |
+| — | 无（导出与交互重构均已提交推送） | — | — |
 
 ## 下一步（按先后顺序）
 
@@ -42,6 +43,6 @@ v0.1.0（未发版）。**从导入到交付的闭环已打通**：导入（文�
 
 | 日期 | 做了什么 | 回滚方式 |
 |---|---|---|
-| 2026-11-04 | `feat`: 精选集导出（`src-tauri/src/export.rs` + `src/components/ExportModal.vue` + api/App 接线 + 9 个导出测试） | `git revert <本次 sha>` |
-| 2026-11-04 | `test`: 给导出补 10 个测试（全库 40 个；此前 STATE 里"0 测试"是过期信息，实际早已有 30 个） | `git revert <sha>` |
-| 2026-11-04 | `fix`: `examples/embed_bench.rs` 的 `MutexGuard` 缺 `mut` 导致 `cargo test` 编译失败 | `git revert <sha>` |
+| 2026-11-04 | `feat`: 交互重构（`src/tokens.css` + `CommandPalette.vue` + `Icon.vue` + 网格键盘导航 + 浮动 Dock + 明暗主题）— 7637298 | `git revert 7637298` |
+| 2026-11-04 | `style`: 浅色主题提高对比度、状态角标改语义色点 + 实心胶囊、分段控件加容器 — c480864 | `git revert c480864` |
+| 2026-11-04 | `feat`: 精选集导出（`src-tauri/src/export.rs` + `ExportModal.vue` + api/App 接线 + 10 个测试）— 02eda34 | `git revert 02eda34` |
