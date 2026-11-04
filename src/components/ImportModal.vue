@@ -2,10 +2,14 @@
 import { onMounted, ref } from "vue";
 import { open } from "@tauri-apps/plugin-dialog";
 import { api, fmtTime, type SourceItem } from "../api";
+import Icon from "./Icon.vue";
 
+const props = withDefaults(defineProps<{ initialTab?: "folder" | "photos" | "webdav" | "qq" | "manage" }>(), {
+  initialTab: "folder",
+});
 const emit = defineEmits<{ close: []; started: [] }>();
 
-const tab = ref<"folder" | "photos" | "webdav" | "qq" | "manage">("folder");
+const tab = ref(props.initialTab);
 const sources = ref<SourceItem[]>([]);
 const error = ref("");
 const busy = ref(false);
@@ -18,10 +22,10 @@ const davPath = ref("");
 const savingPass = ref(true);
 
 const KIND_LABEL: Record<string, string> = {
-  folder: "📁 本地文件夹",
-  photos: "🖼️ 照片图库",
-  webdav: "☁️ 网盘",
-  qq: "🐧 QQ·微信",
+  folder: "本地文件夹",
+  photos: "照片图库",
+  webdav: "网盘",
+  qq: "QQ·微信",
 };
 
 async function refreshSources() {
@@ -111,11 +115,11 @@ defineExpose({ refreshSources, fail });
       </header>
       <div class="body">
         <div class="import-tabs">
-          <button :class="{ on: tab === 'folder' }" @click="tab = 'folder'">📁 本地文件夹</button>
-          <button :class="{ on: tab === 'photos' }" @click="tab = 'photos'">🖼️ 照片图库</button>
-          <button :class="{ on: tab === 'webdav' }" @click="tab = 'webdav'">☁️ 网盘 WebDAV</button>
-          <button :class="{ on: tab === 'qq' }" @click="tab = 'qq'">🐧 QQ·微信</button>
-          <button :class="{ on: tab === 'manage' }" @click="tab = 'manage'">⚙️ 来源 ({{ sources.length }})</button>
+          <button :class="{ on: tab === 'folder' }" @click="tab = 'folder'"><Icon name="folder" :size="14" /> 本地文件夹</button>
+          <button :class="{ on: tab === 'photos' }" @click="tab = 'photos'"><Icon name="image" :size="14" /> 照片图库</button>
+          <button :class="{ on: tab === 'webdav' }" @click="tab = 'webdav'"><Icon name="cloud" :size="14" /> 网盘 WebDAV</button>
+          <button :class="{ on: tab === 'qq' }" @click="tab = 'qq'"><Icon name="chat" :size="14" /> QQ·微信</button>
+          <button :class="{ on: tab === 'manage' }" @click="tab = 'manage'"><Icon name="layers" :size="14" /> 来源 ({{ sources.length }})</button>
         </div>
 
         <p v-if="error" class="import-error">{{ error }}</p>
@@ -179,7 +183,7 @@ defineExpose({ refreshSources, fail });
 
 <style scoped>
 .import-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
-.import-tabs button { border-radius: 8px; }
+.import-tabs button { border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; }
 .import-tabs button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 .import-desc { color: var(--muted); line-height: 1.8; margin-bottom: 14px; font-size: 13px; }
 .import-error { color: #fca5a5; margin-bottom: 12px; }

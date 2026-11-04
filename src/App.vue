@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { listen } from "@tauri-apps/api/event";
 import {
   api, fmtBytes, type MediaItem, type ScanStatus, type Stats, type HistoryEntry, type SuggestionItem,
@@ -59,6 +59,8 @@ const showSmart = ref(false);
 const suggestions = ref<SuggestionItem[]>([]);
 const arenaGroup = ref<number | null>(null);
 const showExport = ref(false);
+const importTab = ref<"folder" | "photos" | "webdav" | "qq" | "manage">("folder");
+const storyRef = ref<{ startTour: () => void } | null>(null);
 
 // —— 命令面板 ——
 const paletteOpen = ref(false);
@@ -123,8 +125,25 @@ async function openSuggestions() {
   showSuggestions.value = true;
 }
 
-function pickAndScan() {
+function pickAndScan(kind: "folder" | "photos" = "folder") {
+  importTab.value = kind;
   showImport.value = true;
+}
+
+// 单一动作入口：还有没挑的就回故事线，挑完了就去精选
+function continueReview() {
+  if ((stats.value?.unreviewed ?? 0) > 0) {
+    setView("story");
+    refresh();
+  } else {
+    showSmart.value = true;
+  }
+}
+
+function startTour() {
+  if (!hasLibrary.value) return;
+  if (view.value !== "story") setView("story");
+  nextTick(() => storyRef.value?.startTour());
 }
 
 function pollScan() {
@@ -316,6 +335,11 @@ function onKey(e: KeyboardEvent) {
     paletteOpen.value = true;
     return;
   }
+  if (e.key === "?" && !inLightbox && !anyOverlay) {
+    e.preventDefault();
+    startTour();
+    return;
+  }
   if (!inLightbox || anyOverlay) return;
 
   if (e.key === "ArrowLeft" || e.key === "j" || e.key === "ArrowUp") { e.preventDefault(); advance(-1); }
@@ -330,6 +354,7 @@ function onKey(e: KeyboardEvent) {
 const commands = computed<Cmd[]>(() => {
   const sel = selectedIds.value;
   const out: Cmd[] = [
+    { id: "continue", group: "挑图", label: stats.value?.unreviewed ? `继续整理（还剩 ${stats.value.unreviewed} 张）` : "挑完了，去精选", run: continueReview },
     { id: "keep", group: "挑图", label: "保留", kbd: "P", hint: sel.length ? `${sel.length} 张` : "", run: () => decide("keep") },
     { id: "pending", group: "挑图", label: "待定", kbd: "U", run: () => decide("pending") },
     { id: "reject", group: "挑图", label: "淘汰", kbd: "X", run: () => decide("reject") },
@@ -347,6 +372,7 @@ const commands = computed<Cmd[]>(() => {
     { id: "redo", group: "输出", label: "重做", kbd: "⇧⌘Z", run: redo },
     { id: "history", group: "输出", label: "操作历史…", run: openHistory },
     { id: "theme", group: "界面", label: theme.value === "dark" ? "切到亮色" : "切到暗色", run: toggleTheme },
+    { id: "tour", group: "视图", label: "30 秒上手：一天一页", kbd: "?", run: startTour },
     { id: "view-story", group: "视图", label: "故事线：一天一页，定量显影", kbd: "⌘1", run: () => setView("story") },
     { id: "view-grid", group: "视图", label: "网格：逐张浏览", kbd: "⌘2", run: () => setView("grid") },
     ...FILTERS.map<Cmd>((f) => ({ id: `f-${f.key}`, group: "视图", label: `筛选：${f.label}`, run: () => setFilter(f.key) })),
@@ -399,6 +425,16 @@ const progressPct = computed(() =>
     <!-- 顶栏：品牌 · 筛选 · 排序 · 动作 -->
     <div class="topbar" v-if="hasLibrary || scan.running">
       <span class="brand">Wan<em>Flow</em></span>
+      <button
+        class="continue-btn"
+        :class="{ done: !(stats?.unreviewed ?? 0) }"
+        @click="continueReview"
+        :title="(stats?.unreviewed ?? 0) ? '回到故事线，继续没挑完的这一天' : '都挑完了，去精选'"
+      >
+        <span class="dot"></span>
+        <span class="t">{{ (stats?.unreviewed ?? 0) ? "继续整理" : "去精选" }}</span>
+        <b v-if="stats?.unreviewed">{{ stats.unreviewed }}</b>
+      </button>
       <span class="chip">{{ stats?.total ?? 0 }} 张 · {{ fmtBytes(stats?.bytes ?? 0) }}</span>
 
       <div class="seg" role="tablist" aria-label="视图">
@@ -437,6 +473,9 @@ const progressPct = computed(() =>
       >
         <Icon :name="dir === 'asc' ? 'arrowUp' : 'arrowDown'" /></button>
 
+      <button class="icon-btn" title="怎么用（?）" @click="startTour">
+        <Icon name="help" />
+      </button>
       <button class="ghost" @click="runAnalyze" :disabled="analyze.running" title="质量分析">
         <Icon name="flame" /> {{ analyze.running ? "分析中…" : "分析" }}
       </button>
@@ -469,6 +508,7 @@ const progressPct = computed(() =>
     <EmptyState v-if="!hasLibrary && !scan.running" @pick="pickAndScan" />
     <Storyline
       v-else-if="view === 'story'"
+      ref="storyRef"
       :revision="revision"
       @changed="onDeveloped"
       @toast="showToast"
@@ -568,7 +608,12 @@ const progressPct = computed(() =>
     <SmartPanel v-if="showSmart" @close="showSmart = false" @refresh="refresh" />
 
     <!-- 导入中心 -->
-    <ImportModal v-if="showImport" @close="showImport = false" @started="() => { showImport = false; pollScan(); }" />
+    <ImportModal
+      v-if="showImport"
+      :initial-tab="importTab"
+      @close="showImport = false"
+      @started="() => { showImport = false; pollScan(); }"
+    />
 
     <!-- 智能初筛 -->
     <SuggestionsPanel

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { api, thumbUrl, type MediaItem, type Stats } from "../api";
 import Icon from "./Icon.vue";
 
@@ -34,6 +34,21 @@ const ticksEl = ref<HTMLElement | null>(null);
 const dragging = ref(false);
 const dragOver = ref(false);
 const dragId = ref<number | null>(null);
+
+// 首次运行的上手引导：不是说明书，是跟着做一遍
+const TOUR_KEY = "wanflow-storyline-tour";
+interface TourStep { title: string; body: string; sel: string }
+const TOUR_STEPS: TourStep[] = [
+  { title: "左边是日子", body: "每一天一页。点一天就翻到那天——你只需要按天看，不用一张张判。", sel: ".timeline" },
+  { title: "中间是这一页", body: "系统已经先替你挑了一版。点页里的照片可以换掉，把下面的胶片拖进来可以钉住。", sel: ".spread" },
+  { title: "决定留几张", body: "按 1–6 或点刻度，这一页会跟着变成 1–6 张的版式。改一下试试。", sel: ".compose" },
+  { title: "按「显影」收工", body: "留下的进精选册，其余转待定；不满意随时 ⌘Z 整组撤销。", sel: ".develop" },
+];
+const tourOpen = ref(false);
+const tourStep = ref(0);
+const tourPending = ref(false);
+const tourRect = ref<{ left: number; top: number; width: number; height: number } | null>(null);
+let tourTimer = 0;
 
 const budget = ref<Record<string, number>>({});
 const pinned = ref<Record<string, number[]>>({});
@@ -241,6 +256,7 @@ function setBudget(n: number) {
   const max = Math.min(MAX_BUDGET, active.value.items.length);
   const next = Math.max(1, Math.min(max, n));
   budget.value = { ...budget.value, [active.value.key]: next };
+  if (tourOpen.value && tourStep.value === 2) nextTick(advanceTour);
 }
 
 // 张数刻度可以「拖」：按住左右滑，页面实时重排
@@ -358,13 +374,87 @@ function go(delta: number) {
 }
 function jump(key: string) {
   const i = days.value.findIndex((d) => d.key === key);
-  if (i >= 0) activeIdx.value = i;
+  if (i < 0) return;
+  const same = i === activeIdx.value;
+  activeIdx.value = i;
+  // 点的是当前这一天时 activeIdx 不变化，tour 也要能往前走
+  if (same && tourOpen.value && tourStep.value === 0) nextTick(advanceTour);
 }
 function skipDay() {
   if (activeIdx.value >= days.value.length - 1) emit("toast", "这是最后一天，显影后这一轮就收尾了");
   else activeIdx.value++;
 }
 const wait = (ms: number) => new Promise<void>((r) => window.setTimeout(r, ms));
+
+function stepVisible(i: number) {
+  const el = root.value?.querySelector<HTMLElement>(TOUR_STEPS[i].sel);
+  if (!el) return false;
+  const b = el.getBoundingClientRect();
+  return b.width > 0 && b.height > 0;
+}
+
+function measureTour() {
+  if (!tourOpen.value) return;
+  const step = TOUR_STEPS[tourStep.value];
+  const el = root.value?.querySelector<HTMLElement>(step.sel);
+  if (!el) { tourRect.value = null; return; }
+  const b = el.getBoundingClientRect();
+  if (!b.width || !b.height) { tourRect.value = null; return; }
+  tourRect.value = {
+    left: Math.max(4, b.left - 8),
+    top: Math.max(4, b.top - 8),
+    width: Math.min(window.innerWidth - 8, b.width + 16),
+    height: b.height + 16,
+  };
+}
+
+function startTour() {
+  if (loading.value) { tourPending.value = true; return; }
+  if (!days.value.length) { emit("toast", "这一轮已经挑完了，没有可演示的页"); return; }
+  if (tourOpen.value) {
+    document.removeEventListener("keydown", onTourKey, true);
+    window.removeEventListener("resize", measureTour);
+  }
+  const first = TOUR_STEPS.findIndex((_, i) => stepVisible(i));
+  if (first < 0) return;
+  tourStep.value = first;
+  tourOpen.value = true;
+  document.addEventListener("keydown", onTourKey, true);
+  window.addEventListener("resize", measureTour);
+  nextTick(measureTour);
+}
+
+function advanceTour() {
+  if (!tourOpen.value) return;
+  let next = tourStep.value + 1;
+  while (next < TOUR_STEPS.length && !stepVisible(next)) next += 1;
+  if (next >= TOUR_STEPS.length) { finishTour(); return; }
+  tourStep.value = next;
+  nextTick(measureTour);
+}
+
+function finishTour() {
+  tourOpen.value = false;
+  tourRect.value = null;
+  try { localStorage.setItem(TOUR_KEY, "done"); } catch { /* 忽略 */ }
+  document.removeEventListener("keydown", onTourKey, true);
+  window.removeEventListener("resize", measureTour);
+}
+
+function onTourKey(e: KeyboardEvent) {
+  if (!tourOpen.value) return;
+  if (e.key === "Escape") {
+    e.preventDefault();
+    e.stopPropagation();
+    finishTour();
+  }
+}
+
+const tourRingStyle = computed(() => {
+  const r = tourRect.value;
+  return r ? { left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px" } : {};
+});
+const tourAtTop = computed(() => tourStep.value >= 2);
 
 async function load(silent = false) {
   if (!silent) {
@@ -381,6 +471,10 @@ async function load(silent = false) {
     stats.value = await api.stats();
     if (activeIdx.value > days.value.length - 1) {
       activeIdx.value = Math.max(0, days.value.length - 1);
+    }
+    if (tourPending.value) {
+      tourPending.value = false;
+      if (days.value.length) nextTick(() => startTour());
     }
   } catch (e) {
     if (silent) emit("toast", "刷新失败：" + e);
@@ -439,10 +533,32 @@ function onWheel(e: WheelEvent) {
 }
 
 watch(() => props.revision, () => { load(true); });
+
+// 跟着做一步，就自动往前走
+watch(activeIdx, () => {
+  if (tourOpen.value && tourStep.value === 0) advanceTour();
+});
+watch(() => developed.value.length, (n, o) => {
+  if (tourOpen.value && tourStep.value === 3 && n > o) finishTour();
+});
+
 onMounted(async () => {
   await load();
   root.value?.focus({ preventScroll: true });
+  let seen = "";
+  try { seen = localStorage.getItem(TOUR_KEY) ?? ""; } catch { /* 忽略 */ }
+  if (seen !== "done" && days.value.length) {
+    tourTimer = window.setTimeout(() => { if (!tourOpen.value) startTour(); }, 900);
+  }
 });
+
+onUnmounted(() => {
+  window.clearTimeout(tourTimer);
+  document.removeEventListener("keydown", onTourKey, true);
+  window.removeEventListener("resize", measureTour);
+});
+
+defineExpose({ startTour });
 </script>
 
 <template>
@@ -650,6 +766,27 @@ onMounted(async () => {
         </button>
       </aside>
     </template>
+
+    <Teleport to="body">
+      <div v-if="tourOpen && tourRect" class="tour-layer">
+        <div class="tour-ring" :style="tourRingStyle"></div>
+        <div class="tour-card" :class="{ 'at-top': tourAtTop }" role="dialog" aria-label="上手引导">
+          <div class="tour-kicker">
+            上手 {{ tourStep + 1 }} / {{ TOUR_STEPS.length }}
+            <span>· 做一步，它会自己往前走</span>
+          </div>
+          <h3>{{ TOUR_STEPS[tourStep].title }}</h3>
+          <p>{{ TOUR_STEPS[tourStep].body }}</p>
+          <div class="tour-actions">
+            <button class="tour-skip" @click="finishTour">先不看</button>
+            <span class="spacer"></span>
+            <button class="tour-next" @click="advanceTour">
+              {{ tourStep === TOUR_STEPS.length - 1 ? "知道了" : "下一步" }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </section>
 </template>
 
@@ -1294,6 +1431,99 @@ onMounted(async () => {
 .done-actions { display: flex; gap: 8px; margin-top: 8px; }
 .done-stats { display: flex; gap: 18px; margin-top: 14px; color: var(--text-4); font-size: var(--fs-2); }
 .done-stats b { color: var(--text-1); font-family: var(--font-mono); }
+
+/* ── 首次运行：跟着做一遍 ── */
+.tour-layer { position: fixed; inset: 0; z-index: 300; pointer-events: none; }
+.tour-ring {
+  position: fixed;
+  border-radius: 12px;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 9999px oklch(0% 0 0 / .58),
+    0 0 0 1.5px var(--accent),
+    0 14px 44px -14px oklch(0% 0 0 / .55);
+  transition:
+    left .28s var(--ease-out),
+    top .28s var(--ease-out),
+    width .28s var(--ease-out),
+    height .28s var(--ease-out);
+}
+.tour-card {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  width: min(480px, calc(100vw - 32px));
+  padding: 16px 18px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border-2);
+  background: var(--surface-1);
+  color: var(--text-1);
+  box-shadow: var(--shadow-lift);
+  pointer-events: auto;
+  z-index: 301;
+  animation: tourIn 240ms var(--ease-out) both;
+}
+.tour-card.at-top { top: 64px; bottom: auto; }
+@keyframes tourIn {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.tour-kicker {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+}
+.tour-kicker span {
+  font-family: var(--font-body);
+  letter-spacing: 0;
+  color: var(--text-4);
+}
+.tour-card h3 {
+  margin: 7px 0 5px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+.tour-card p {
+  margin: 0;
+  font-size: var(--fs-2);
+  line-height: 1.65;
+  color: var(--text-3);
+}
+.tour-actions { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.tour-skip {
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-4);
+  font-size: var(--fs-1);
+  cursor: pointer;
+}
+.tour-skip:hover { background: var(--hover); color: var(--text-2); }
+.tour-actions .spacer { flex: 1; }
+.tour-next {
+  height: 30px;
+  padding: 0 13px;
+  border: none;
+  border-radius: 7px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  cursor: pointer;
+}
+.tour-next:hover { background: var(--accent-strong); }
+@media (prefers-reduced-motion: reduce) {
+  .tour-card { animation: none; }
+  .tour-ring { transition: none; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .spread-wrap { animation: none; }

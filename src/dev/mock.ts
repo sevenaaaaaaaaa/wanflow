@@ -264,6 +264,8 @@ function applyDecision(ids: number[], decision: MediaItem["decision"], stars: nu
 
 export function installDevMock(): void {
   if (import.meta.env.PROD || hasTauri()) return;
+  // 设计检查用：/?empty 直接看空状态
+  if (typeof location !== "undefined" && new URLSearchParams(location.search).has("empty")) items.length = 0;
 
   api.listMedia = async (q) => {
     let out = items.filter((m) => {

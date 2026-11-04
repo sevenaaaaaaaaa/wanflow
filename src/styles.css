@@ -122,6 +122,45 @@ kbd {
 }
 .chip.accent { background: var(--accent-soft); color: var(--accent-ink); }
 
+/* 顶栏唯一动作入口：继续整理 */
+.continue-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 10px 0 9px;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out);
+}
+.continue-btn:hover { background: oklch(from var(--accent) l c h / .24); }
+.continue-btn .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px oklch(from var(--accent) l c h / .10);
+}
+.continue-btn b {
+  padding: 1px 6px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--font-mono);
+  font-size: var(--fs-1);
+  font-weight: 600;
+  line-height: 1.45;
+}
+.continue-btn.done { background: transparent; border-color: var(--border-2); color: var(--text-2); }
+.continue-btn.done .dot { background: var(--text-4); box-shadow: none; }
+@media (max-width: 1180px) { .continue-btn .t { display: none; } }
+
 /* ── 外壳 ───────────────────────────────────────────────── */
 .app-shell {
   display: flex;
