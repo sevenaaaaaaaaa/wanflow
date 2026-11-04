@@ -99,3 +99,35 @@ GUI 手测（`npm run tauri dev`）：30 张真实照片的演示库，⌘K 面�
 **下一个动作**：按用户对审美的进一步意见继续调（候选：网格改瀑布流保留原始比例 / 顶栏收纳 / 空状态重做）。
 
 **别踩**：`applyTheme()` 在 `onMounted` 会覆盖临时设置的 `documentElement.dataset.theme`，临时预览主题要在 setTimeout 里再设，或直接改 `localStorage`。
+
+---
+
+## 2026-11-05 · DSH / lead —— 故事线：一天一页，定量显影
+
+**用户诉求**：「你的交互还不够创新，视觉有点提升了，但是不够创新」。
+
+**核心动作**：不再优化"逐张判定"，改成新的心智模型——**一天一页，给这一页定量显影**。
+- 左栏是时间轴（按月份分组、圆点大小=当天张数、当前日高亮），中栏是当天的"相册页"，右栏是"精选册"（已显影的 mini 页堆叠）。
+- 页面不是固定拼图：用「这一页，留几张？」的刻度尺（1–6，可点可拖，也能按 1–6 / ←→）决定当天保留数量，系统按 星级×14 + 清晰度×0.7 + 连拍最佳 + 时间置信度 自动排一页；页面会随张数变成 1/2/3/4/5/6 张的不同版式。
+- 不满意自动选择：点页内照片「换掉」＝移出并自动补位；点胶片帧＝加入/移出；**把胶片帧拖进页面**＝钉住这张并抬预算（webview 里 dataTransfer 可能失效，已用 dragstart 记下的 id 兜底）。
+- Enter / 「显影」→ 快门白闪 → 页面飞进右侧精选册 → 自动翻到下一天；X 跳过当天；R 重置人工选择。
+- 精选册与撤销一致：册页不是本地记账，而是 `kept` 重新按天分组得出；只显示本轮显影过的天（localStorage `wanflow-developed-days`），历史 keep 不会冒充本轮成果。⌘Z/⇧⌘Z 可整组撤销/重做一次显影。
+- 新增 Rust 命令 `develop_page(keep_ids, rest_ids)`：单事务写一次 action + 批量 verdicts。原因：原来两次 `set_decision` 是两个撤销批次，⌘Z 只回滚一半；且 `redo_last` 的 SQL 无法按组重做。
+- 细节：双纸堆叠（下层纸旋转 -0.9°）、翻页 3D 动画（440ms，尊重 reduced-motion）、顶栏 toast（不挡页眉）、浏览器演示库（`src/dev/mock.ts`，仅 DEV 且无 Tauri 时启用）。
+
+**验证**：
+```bash
+cd /Users/seveno/WanFlow && npm run build     # ✓ built，css 46.26 kB / js 162.80 kB
+cd /Users/seveno/WanFlow/src-tauri && cargo test   # 40 passed; 0 failed
+```
+CDP 实测（1440×900，headless）：初始 10 天 / 15 张待挑；显影后 9 天、精选册 18 张、页码 04、toast「显影 4 张 · 其余 11 张转待定」；⌘Z 回到 10 天 / 14 张 / 第 1 页，⇧⌘Z 再回到 9 天 / 18 张 / 第 4 页。拖拽测试：页面首图 = 拖入那张（first=true）。网格视图回归：30 个 cell、Dock、排序均在。
+
+**踩过的坑**：
+- `.spread` 和 `.paper-under` **都要** `grid-area:1/1`，只给下层纸设会让正页被自动排到第二行，整页塌下去。
+- 合成 `DragEvent` 时 `dataTransfer.getData` 可能为空；必须用 dragstart 记录的 `dragId` 兜底，否则真实拖拽也可能受 webview 影响。
+- 全局裸 button 规则曾用 5 个 `:not` 把特异性抬到 0,5,1，压过 scoped 样式（.frame 被压成 30px）；已改成 `:where(...)` 降为 0。
+- 显影必须是**一个** action，否则撤销只能撤一半。
+
+**下一个动作**：`npm run tauri dev` 用真实库试用 ⌘1 故事线；再按反馈调"张数刻度"和"换掉"的手感。
+
+**回滚**：`git revert 0072d5a`。
