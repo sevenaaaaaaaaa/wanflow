@@ -713,11 +713,13 @@ pub fn develop_page(
     if keep_ids.is_empty() {
         return Err("这一页至少留一张".into());
     }
-    let mut seen = std::collections::HashSet::new();
-    let keep: Vec<i64> = keep_ids.into_iter().filter(|id| seen.insert(*id)).collect();
+    let mut keep_seen = std::collections::HashSet::new();
+    let keep: Vec<i64> = keep_ids.into_iter().filter(|id| keep_seen.insert(*id)).collect();
+    let keep_set: std::collections::HashSet<i64> = keep.iter().copied().collect();
+    let mut rest_seen = std::collections::HashSet::new();
     let rest: Vec<i64> = rest_ids
         .into_iter()
-        .filter(|id| !seen.contains(id))
+        .filter(|id| !keep_set.contains(id) && rest_seen.insert(*id))
         .collect();
     let label = if rest.is_empty() {
         format!("显影 {} 张", keep.len())
