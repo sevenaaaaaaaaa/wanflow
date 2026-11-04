@@ -10,7 +10,7 @@ function fmt(ts: number): string {
 </script>
 
 <template>
-  <div class="modal-mask" @click.self="$emit('close')">
+  <div class="modal-mask" @mousedown.self="$emit('close')">
     <div class="modal" style="width: min(560px, 92vw)">
       <header>
         操作历史（全部可撤销）

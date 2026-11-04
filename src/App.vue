@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { listen } from "@tauri-apps/api/event";
-import { api, fmtBytes, type MediaItem, type ScanStatus, type Stats, type HistoryEntry, type SuggestionItem } from "./api";
+import {
+  api, fmtBytes, type MediaItem, type ScanStatus, type Stats, type HistoryEntry, type SuggestionItem,
+} from "./api";
 import EmptyState from "./components/EmptyState.vue";
 import PhotoGrid from "./components/PhotoGrid.vue";
 import Lightbox from "./components/Lightbox.vue";
@@ -13,12 +15,16 @@ import ImportModal from "./components/ImportModal.vue";
 import SmartPanel from "./components/SmartPanel.vue";
 import Arena from "./components/Arena.vue";
 import ExportModal from "./components/ExportModal.vue";
+import CommandPalette from "./components/CommandPalette.vue";
+import type { Cmd } from "./types";
+import Icon from "./components/Icon.vue";
 
 // —— 库状态 ——
 const items = ref<MediaItem[]>([]);
 const total = ref(0);
 const stats = ref<Stats | null>(null);
-const filter = ref<"all" | "unreviewed" | "keep" | "reject" | "pending">("all");
+type Filter = "all" | "unreviewed" | "keep" | "reject" | "pending";
+const filter = ref<Filter>("all");
 const sort = ref<"time" | "name" | "size" | "stars" | "quality" | "added">("time");
 const dir = ref<"asc" | "desc">("desc");
 const dupOnly = ref(false);
@@ -39,7 +45,7 @@ let unlisteners: (() => void)[] = [];
 const undoToast = ref<string | null>(null);
 let undoTimer: number | undefined;
 
-// —— 面板 ——
+// —— 浮层 ——
 const showTimeModal = ref(false);
 const showHistory = ref(false);
 const history = ref<HistoryEntry[]>([]);
@@ -51,7 +57,31 @@ const suggestions = ref<SuggestionItem[]>([]);
 const arenaGroup = ref<number | null>(null);
 const showExport = ref(false);
 
+// —— 命令面板 ——
+const paletteOpen = ref(false);
+
+// —— 主题 ——
+const theme = ref<"dark" | "light">("dark");
+function applyTheme() {
+  document.documentElement.dataset.theme = theme.value;
+  localStorage.setItem("wanflow-theme", theme.value);
+}
+function toggleTheme() {
+  theme.value = theme.value === "dark" ? "light" : "dark";
+  applyTheme();
+}
+
 const hasLibrary = computed(() => (stats.value?.total ?? 0) > 0);
+const selectedIds = computed(() => [...selection.value]);
+const focusHint = computed(() => (selection.value.size > 0 ? `${selection.value.size} 张选中` : ""));
+
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: "all", label: "全部" },
+  { key: "unreviewed", label: "未处理" },
+  { key: "keep", label: "保留" },
+  { key: "pending", label: "待定" },
+  { key: "reject", label: "淘汰" },
+];
 
 async function refresh() {
   loading.value = true;
@@ -73,7 +103,7 @@ async function refresh() {
 }
 
 async function refreshSuggestionCount() {
-  suggestionCount.value = (await api.getSuggestions()).length;
+  try { suggestionCount.value = (await api.getSuggestions()).length; } catch { /* 忽略 */ }
 }
 
 async function openSuggestions() {
@@ -92,9 +122,7 @@ function pollScan() {
     if (!scan.value.running) {
       window.clearInterval(scanTimer);
       scanTimer = undefined;
-      if (scan.value.phase && scan.value.phase !== "完成") {
-        showToast(`导入失败: ${scan.value.phase}`);
-      }
+      if (scan.value.phase && scan.value.phase !== "完成") showToast(`导入失败: ${scan.value.phase}`);
       await refresh();
     }
   }, 400);
@@ -104,10 +132,15 @@ async function runAnalyze() {
   if (analyze.value.running) return;
   try {
     await api.analyzeAll();
-    // 进度经事件推送（onMounted 里 listen），结束后 done 事件里刷新
   } catch (e) {
     showToast(`分析失败: ${e}`);
   }
+}
+
+function setFilter(f: Filter) {
+  filter.value = f;
+  selection.value = new Set();
+  refresh();
 }
 
 async function decide(decision: "keep" | "reject" | "pending" | null, stars?: number) {
@@ -115,12 +148,27 @@ async function decide(decision: "keep" | "reject" | "pending" | null, stars?: nu
   const cur = lightboxIdx.value;
   const target = cur !== null && ids.length === 0 ? [items.value[cur].id] : ids;
   if (target.length === 0) return;
+  await decideIds(target, decision, stars);
+  if (cur !== null && ids.length === 0 && decision) advance(1);
+}
+
+async function decideIds(ids: number[], decision: "keep" | "reject" | "pending" | null, stars?: number) {
+  if (ids.length === 0) return;
   try {
-    const label = await api.setDecision(target, decision, stars ?? null);
+    const label = await api.setDecision(ids, decision, stars ?? null);
     showToast(`已标记 ${label}`);
     await refresh();
-    // 灯箱单张模式：自动前进
-    if (cur !== null && ids.length === 0 && decision) advance(1);
+  } catch (e) {
+    showToast(`操作失败: ${e}`);
+  }
+}
+
+async function star(ids: number[], s: number) {
+  if (ids.length === 0) return;
+  try {
+    await api.setDecision(ids, null, s);
+    showToast(`已加星 ★${s}`);
+    await refresh();
   } catch (e) {
     showToast(`操作失败: ${e}`);
   }
@@ -154,38 +202,133 @@ async function openHistory() {
   showHistory.value = true;
 }
 
+function toggleId(id: number) {
+  const next = new Set(selection.value);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  selection.value = next;
+}
+function selectAll() {
+  selection.value = new Set(items.value.map((m) => m.id));
+}
+function clearSelection() {
+  selection.value = new Set();
+}
+function addRange(ids: number[]) {
+  if (ids.length === 0) { selection.value = new Set(); return; }
+  const next = new Set(selection.value);
+  ids.forEach((id) => next.add(id));
+  selection.value = next;
+}
+
+function closeTop() {
+  if (paletteOpen.value) return (paletteOpen.value = false);
+  if (lightboxIdx.value !== null) return (lightboxIdx.value = null);
+  if (dupGroup.value !== null) return (dupGroup.value = null);
+  if (arenaGroup.value !== null) return (arenaGroup.value = null);
+  if (showSuggestions.value) return (showSuggestions.value = false);
+  if (showSmart.value) return (showSmart.value = false);
+  if (showExport.value) return (showExport.value = false);
+  if (showTimeModal.value) return (showTimeModal.value = false);
+  if (showHistory.value) return (showHistory.value = false);
+  if (showImport.value) return (showImport.value = false);
+  if (selection.value.size > 0) return clearSelection();
+}
+
 function onKey(e: KeyboardEvent) {
-  const inLightbox = lightboxIdx.value !== null;
+  const el = e.target as HTMLElement | null;
+  const typing = !!el && /^(input|textarea|select)$/i.test(el.tagName);
+
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+    e.preventDefault();
+    paletteOpen.value = !paletteOpen.value;
+    return;
+  }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
+    if (typing) return;
     e.preventDefault();
     e.shiftKey ? redo() : undo();
     return;
   }
-  if (e.key === "Escape") {
-    if (lightboxIdx.value !== null) lightboxIdx.value = null;
-    else if (arenaGroup.value !== null) arenaGroup.value = null;
-    else if (showSuggestions.value) showSuggestions.value = false;
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a" && !typing && lightboxIdx.value === null) {
+    e.preventDefault();
+    selectAll();
     return;
   }
-  if (!inLightbox) return;
-  if (e.key === "ArrowLeft" || e.key === "j") { e.preventDefault(); advance(-1); }
-  else if (e.key === "ArrowRight" || e.key === "k" || e.key === " ") { e.preventDefault(); advance(1); }
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "i" && !typing) {
+    e.preventDefault();
+    showImport.value = true;
+    return;
+  }
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "e" && !typing) {
+    e.preventDefault();
+    showExport.value = true;
+    return;
+  }
+  if (e.key === "Escape") { closeTop(); return; }
+  if (typing) return;
+
+  const inLightbox = lightboxIdx.value !== null;
+  const anyOverlay =
+    paletteOpen.value || dupGroup.value !== null || arenaGroup.value !== null ||
+    showSuggestions.value || showSmart.value || showImport.value || showExport.value ||
+    showTimeModal.value || showHistory.value;
+
+  if (e.key === "/" && !inLightbox && !anyOverlay) {
+    e.preventDefault();
+    paletteOpen.value = true;
+    return;
+  }
+  if (!inLightbox || anyOverlay) return;
+
+  if (e.key === "ArrowLeft" || e.key === "j" || e.key === "ArrowUp") { e.preventDefault(); advance(-1); }
+  else if (e.key === "ArrowRight" || e.key === "k" || e.key === "ArrowDown" || e.key === " ") { e.preventDefault(); advance(1); }
   else if (e.key.toLowerCase() === "p") decide("keep");
   else if (e.key.toLowerCase() === "x") decide("reject");
   else if (e.key.toLowerCase() === "u") decide("pending");
-  else if (/^[0-5]$/.test(e.key)) decide(null, parseInt(e.key));
+  else if (/^[0-5]$/.test(e.key)) decide(null, parseInt(e.key, 10));
 }
 
+// —— 命令面板：与动作栏同源 ——
+const commands = computed<Cmd[]>(() => {
+  const sel = selectedIds.value;
+  const out: Cmd[] = [
+    { id: "keep", group: "挑图", label: "保留", kbd: "P", hint: sel.length ? `${sel.length} 张` : "", run: () => decide("keep") },
+    { id: "pending", group: "挑图", label: "待定", kbd: "U", run: () => decide("pending") },
+    { id: "reject", group: "挑图", label: "淘汰", kbd: "X", run: () => decide("reject") },
+    ...[1, 2, 3, 4, 5].map<Cmd>((s) => ({ id: `star${s}`, group: "挑图", label: `加星 ★${s}`, kbd: String(s), run: () => decide(null, s) })),
+    { id: "all", group: "挑图", label: "全选当前列表", kbd: "⌘A", run: selectAll },
+    { id: "none", group: "挑图", label: "清空选择", kbd: "esc", run: clearSelection },
+    { id: "import", group: "导入与分析", label: "导入照片/视频…", kbd: "⌘I", run: () => (showImport.value = true) },
+    { id: "analyze", group: "导入与分析", label: analyze.value.running ? "质量分析（进行中…）" : "重新做质量分析", run: runAnalyze },
+    { id: "suggest", group: "导入与分析", label: `智能初筛${suggestionCount.value ? `（${suggestionCount.value} 条建议）` : ""}`, run: openSuggestions },
+    { id: "smart", group: "导入与分析", label: "智能精选…", run: () => (showSmart.value = true) },
+    { id: "time", group: "整理", label: "修正拍摄时间…", hint: sel.length ? `${sel.length} 张` : "", run: () => (showTimeModal.value = true) },
+    { id: "dup", group: "整理", label: dupOnly.value ? "显示全部（不限重复组）" : "只看重复组", run: () => { dupOnly.value = !dupOnly.value; refresh(); } },
+    { id: "export", group: "输出", label: "导出精选集…", kbd: "⌘E", hint: sel.length ? `${sel.length} 张选中` : "按范围", run: () => (showExport.value = true) },
+    { id: "undo", group: "输出", label: "撤销上一次操作", kbd: "⌘Z", run: undo },
+    { id: "redo", group: "输出", label: "重做", kbd: "⇧⌘Z", run: redo },
+    { id: "history", group: "输出", label: "操作历史…", run: openHistory },
+    { id: "theme", group: "界面", label: theme.value === "dark" ? "切到亮色" : "切到暗色", run: toggleTheme },
+    ...FILTERS.map<Cmd>((f) => ({ id: `f-${f.key}`, group: "视图", label: `筛选：${f.label}`, run: () => setFilter(f.key) })),
+  ];
+  return out;
+});
+
 onMounted(async () => {
+  const saved = localStorage.getItem("wanflow-theme");
+  if (saved === "light" || saved === "dark") theme.value = saved;
+  applyTheme();
+
   document.addEventListener("keydown", onKey);
   unlisteners = await Promise.all([
-    listen<ScanStatus>("analyze://progress", e => (analyze.value = e.payload)),
+    listen<ScanStatus>("analyze://progress", (e) => (analyze.value = e.payload)),
     listen("analyze://done", async () => {
       analyze.value = { running: false, phase: "完成", done: 0, total: 0, current: "" };
       await refresh();
       showToast("质量分析完成，初筛建议已生成");
     }),
-    listen<string>("analyze://error", async e => {
+    listen<string>("analyze://error", async (e) => {
       analyze.value = { running: false, phase: e.payload, done: 0, total: 0, current: "" };
       showToast(`分析失败: ${e.payload}`);
     }),
@@ -196,35 +339,39 @@ onMounted(async () => {
 });
 onUnmounted(() => {
   document.removeEventListener("keydown", onKey);
-  unlisteners.forEach(u => u());
+  unlisteners.forEach((u) => u());
   if (scanTimer) window.clearInterval(scanTimer);
 });
 
 const progressPct = computed(() =>
-  scan.value.total > 0 ? Math.round((scan.value.done / scan.value.total) * 100) : 0
+  scan.value.total > 0 ? Math.round((scan.value.done / scan.value.total) * 100) : 0,
 );
+
 </script>
 
 <template>
   <div class="app-shell">
-    <!-- 顶栏 -->
+    <!-- 顶栏：品牌 · 筛选 · 排序 · 动作 -->
     <div class="topbar" v-if="hasLibrary || scan.running">
       <span class="brand">Wan<em>Flow</em></span>
       <span class="chip">{{ stats?.total ?? 0 }} 张 · {{ fmtBytes(stats?.bytes ?? 0) }}</span>
-      <button class="primary" @click="showImport = true" :disabled="scan.running">
-        {{ scan.running ? "导入中…" : "导入" }}
-      </button>
+
+      <div class="seg" role="tablist" aria-label="筛选">
+        <button
+          v-for="f in FILTERS"
+          :key="f.key"
+          :class="{ on: filter === f.key }"
+          @click="setFilter(f.key)"
+        >{{ f.label }}</button>
+      </div>
 
       <span class="spacer"></span>
 
-      <select v-model="filter" @change="refresh">
-        <option value="all">全部</option>
-        <option value="unreviewed">未处理</option>
-        <option value="keep">已保留</option>
-        <option value="pending">待定</option>
-        <option value="reject">已淘汰</option>
-      </select>
-      <select v-model="sort" @change="refresh">
+      <label class="hint" style="display: flex; align-items: center; gap: 6px">
+        <input type="checkbox" v-model="dupOnly" @change="refresh" /> 仅重复组
+      </label>
+
+      <select v-model="sort" @change="refresh" aria-label="排序">
         <option value="time">拍摄时间</option>
         <option value="added">导入顺序</option>
         <option value="name">文件名</option>
@@ -232,55 +379,39 @@ const progressPct = computed(() =>
         <option value="stars">星级</option>
         <option value="quality">质量最差优先</option>
       </select>
-      <button @click="dir = dir === 'asc' ? 'desc' : 'asc'; refresh()" :title="dir === 'asc' ? '当前：正序' : '当前：倒序'">
-        {{ dir === "asc" ? "↑" : "↓" }}
-      </button>
-      <label class="hint" style="display:flex;align-items:center;gap:4px">
-        <input type="checkbox" v-model="dupOnly" @change="refresh" /> 仅重复组
-      </label>
+      <button
+        class="icon-btn"
+        :title="dir === 'asc' ? '正序（点击切倒序）' : '倒序（点击切正序）'"
+        @click="dir = dir === 'asc' ? 'desc' : 'asc'; refresh()"
+      >
+        <Icon :name="dir === 'asc' ? 'arrowUp' : 'arrowDown'" /></button>
 
-      <span class="spacer"></span>
-
-      <button @click="showSmart = true">✨ 智能精选</button>
-      <button @click="runAnalyze" :disabled="analyze.running">
-        {{ analyze.running ? "分析中…" : "质量分析" }}
+      <button class="ghost" @click="runAnalyze" :disabled="analyze.running" title="质量分析">
+        <Icon name="flame" /> {{ analyze.running ? "分析中…" : "分析" }}
       </button>
-      <button @click="openSuggestions">
-        智能初筛<span v-if="suggestionCount > 0" class="count-badge">{{ suggestionCount }}</span>
+      <button class="ghost" @click="showSmart = true" title="智能精选">
+        <Icon name="sparkle" /> 精选
       </button>
-      <button @click="showExport = true" title="把精选集导出成照片副本（原图不动）">导出</button>
-      <button @click="undo" title="⌘Z">撤销</button>
-      <button @click="redo" title="⇧⌘Z">重做</button>
-      <button @click="openHistory">历史</button>
+      <button class="primary" @click="showImport = true" :disabled="scan.running">
+        <Icon name="folder" /> {{ scan.running ? "导入中…" : "导入" }}
+      </button>
+      <button class="icon-btn" title="命令面板 ⌘K" @click="paletteOpen = true">
+        <Icon name="command" />
+      </button>
     </div>
 
-    <!-- 批量操作条 -->
-    <div class="topbar" v-if="selection.size > 0" style="background: var(--bg3)">
-      <div class="batchbar">
-        <b>{{ selection.size }} 张选中</b>
-        <button class="primary" @click="decide('keep')">保留 (P)</button>
-        <button @click="decide('pending')">待定 (U)</button>
-        <button style="color: #fca5a5" @click="decide('reject')">淘汰 (X)</button>
-        <span style="color: var(--muted)">|</span>
-        <button v-for="s in 5" :key="s" @click="decide(null, s)">★{{ s }}</button>
-        <span style="color: var(--muted)">|</span>
-        <button @click="showTimeModal = true">修正时间…</button>
-        <button @click="selection.clear()">取消选择</button>
-      </div>
-    </div>
-
-    <!-- 扫描进度 -->
+    <!-- 扫描 / 分析进度：1px 发丝 -->
     <div class="scanbar" v-if="scan.running || progressPct > 0">
       <div :style="{ width: scan.running ? Math.max(progressPct, 2) + '%' : '100%' }"></div>
     </div>
-    <div class="hint" v-if="scan.running" style="padding: 4px 16px">
+    <div class="hint" v-if="scan.running" style="padding: 5px 16px; font-family: var(--font-mono); font-size: var(--fs-1)">
       {{ scan.phase }} · {{ scan.done }}/{{ scan.total }} · {{ scan.current }}
     </div>
     <div class="scanbar" v-if="analyze.running">
       <div style="width: 30%" class="analyze-anim"></div>
     </div>
-    <div class="hint" v-if="analyze.running" style="padding: 4px 16px; color: #a78bfa">
-      ✨ {{ analyze.phase }} · {{ analyze.current }}
+    <div class="hint" v-if="analyze.running" style="padding: 5px 16px; font-size: var(--fs-1)">
+      {{ analyze.phase }} · {{ analyze.current }}
     </div>
 
     <!-- 主区域 -->
@@ -291,24 +422,55 @@ const progressPct = computed(() =>
       :total="total"
       :loading="loading"
       :selection="selection"
-      @toggle="id => { selection.has(id) ? selection.delete(id) : selection.add(id); }"
-      @open="i => (lightboxIdx = i)"
-      @dup="g => (dupGroup = g)"
-      @arena="g => (arenaGroup = g)"
+      @toggle="toggleId"
+      @range="addRange"
+      @open="(i: number) => (lightboxIdx = i)"
+      @decide="(ids, d) => decideIds(ids, d)"
+      @star="star"
+      @dup="(g: number) => (dupGroup = g)"
+      @arena="(g: number) => (arenaGroup = g)"
     />
 
-    <!-- 底部状态栏 -->
-    <div class="statusbar" v-if="hasLibrary">
-      <span>保留 <b style="color: var(--keep)">{{ stats?.keeps ?? 0 }}</b></span>
-      <span>待定 {{ stats?.pendings ?? 0 }}</span>
-      <span>淘汰 <b style="color: var(--reject)">{{ stats?.rejects ?? 0 }}</b></span>
-      <span>未处理 {{ stats?.unreviewed ?? 0 }}</span>
-      <span>重复组 {{ stats?.dupGroups ?? 0 }}</span>
-      <span class="spacer"></span>
-      <span class="hint">
-        <kbd>点击</kbd> 选择 · <kbd>双击</kbd> 放大 · <kbd>P</kbd> 保留 · <kbd>X</kbd> 淘汰 ·
-        <kbd>0-5</kbd> 星级 · <kbd>⌘Z</kbd> 撤销
-      </span>
+    <!-- 底部 Dock：统计 / 选区动作栏 + 命令入口 -->
+    <div class="dock" v-if="hasLibrary">
+      <template v-if="selection.size > 0">
+        <div class="actionbar">
+          <span class="count">{{ focusHint }}</span>
+          <button class="primary" @click="decide('keep')"><Icon name="check" :size="13" /> 保留</button>
+          <button @click="decide('pending')">待定</button>
+          <button class="danger" @click="decide('reject')"><Icon name="x" :size="13" /> 淘汰</button>
+          <span class="sep"></span>
+          <div class="starpick" aria-label="星级">
+            <button v-for="s in 5" :key="s" :title="`${s} 星`" @click="decide(null, s)">★</button>
+          </div>
+          <span class="sep"></span>
+          <button @click="showTimeModal = true"><Icon name="time" :size="13" /> 修正时间</button>
+          <button @click="showExport = true"><Icon name="export" :size="13" /> 导出</button>
+          <button class="ghost" @click="clearSelection">取消</button>
+        </div>
+      </template>
+      <template v-else>
+        <div class="stats">
+          <span class="k">保留 <b>{{ stats?.keeps ?? 0 }}</b></span>
+          <span class="p">待定 <b>{{ stats?.pendings ?? 0 }}</b></span>
+          <span class="r">淘汰 <b>{{ stats?.rejects ?? 0 }}</b></span>
+          <span>未处理 <b>{{ stats?.unreviewed ?? 0 }}</b></span>
+          <span v-if="(stats?.dupGroups ?? 0) > 0">重复组 <b>{{ stats?.dupGroups ?? 0 }}</b></span>
+        </div>
+        <span class="spacer"></span>
+        <div class="look">
+          <span><kbd>↑↓←→</kbd> 移动</span>
+          <span><kbd>空格</kbd> 选</span>
+          <span><kbd>↵</kbd> 放大</span>
+          <span><kbd>P</kbd>/<kbd>X</kbd> 留/弃</span>
+        </div>
+      </template>
+
+      <button class="cmdbtn" @click="paletteOpen = true" title="命令面板">
+        <Icon name="search" :size="14" />
+        <span>命令</span>
+        <kbd>⌘K</kbd>
+      </button>
     </div>
 
     <!-- 灯箱 -->
@@ -320,82 +482,60 @@ const progressPct = computed(() =>
       @close="lightboxIdx = null"
       @prev="advance(-1)"
       @next="advance(1)"
-      @decide="d => decide(d)"
-      @stars="s => decide(null, s)"
-      @dup="g => (dupGroup = g)"
-      @arena="g => ((arenaGroup = g), (lightboxIdx = null))"
+      @decide="(d) => decide(d)"
+      @stars="(s) => decide(null, s)"
+      @dup="(g) => (dupGroup = g)"
+      @arena="(g) => ((arenaGroup = g), (lightboxIdx = null))"
     />
 
+    <!-- 命令面板 -->
+    <CommandPalette :open="paletteOpen" :commands="commands" @close="paletteOpen = false" />
+
     <!-- 重复组面板 -->
-    <DupPanel
-      v-if="dupGroup !== null"
-      :group="dupGroup"
-      @close="dupGroup = null"
-      @decide="d => decide(d)"
-      @refresh="refresh"
-    />
+    <DupPanel v-if="dupGroup !== null" :group="dupGroup" @close="dupGroup = null" @decide="(d) => decide(d)" @refresh="refresh" />
 
     <!-- 批量时间操作台 -->
     <TimeModal
       v-if="showTimeModal"
-      :ids="[...selection]"
+      :ids="selectedIds"
       @close="showTimeModal = false"
-      @applied="async label => { showToast(label); await refresh(); }"
+      @applied="async (label) => { showToast(label); await refresh(); }"
     />
 
     <!-- 历史抽屉 -->
-    <HistoryDrawer
-      v-if="showHistory"
-      :entries="history"
-      @close="showHistory = false"
-      @undo="undo"
-      @redo="redo"
-    />
+    <HistoryDrawer v-if="showHistory" :entries="history" @close="showHistory = false" @undo="undo" @redo="redo" />
 
     <!-- 智能精选 -->
-    <SmartPanel
-      v-if="showSmart"
-      @close="showSmart = false"
-      @refresh="refresh"
-    />
+    <SmartPanel v-if="showSmart" @close="showSmart = false" @refresh="refresh" />
 
     <!-- 导入中心 -->
-    <ImportModal
-      v-if="showImport"
-      @close="showImport = false"
-      @started="() => { showImport = false; pollScan(); }"
-    />
+    <ImportModal v-if="showImport" @close="showImport = false" @started="() => { showImport = false; pollScan(); }" />
 
-    <!-- 智能初筛面板 -->
+    <!-- 智能初筛 -->
     <SuggestionsPanel
       v-if="showSuggestions"
       :items="suggestions"
       @close="showSuggestions = false"
-      @applied="async label => { showToast(label); showSuggestions = false; await refresh(); }"
+      @applied="async (label) => { showToast(label); showSuggestions = false; await refresh(); }"
       @refresh="refresh"
     />
 
     <!-- 导出精选集 -->
     <ExportModal
       v-if="showExport"
-      :ids="[...selection]"
+      :ids="selectedIds"
       @close="showExport = false"
-      @done="s => { showToast(`已导出 ${s.copied} 个文件到 ${s.destDir}`); refresh(); }"
+      @done="(s) => { showToast(`已导出 ${s.copied} 个文件到 ${s.destDir}`); refresh(); }"
     />
 
     <!-- 擂台 -->
-    <Arena
-      v-if="arenaGroup !== null"
-      :group="arenaGroup"
-      @close="arenaGroup = null"
-      @refresh="refresh"
-    />
+    <Arena v-if="arenaGroup !== null" :group="arenaGroup" @close="arenaGroup = null" @refresh="refresh" />
 
     <!-- 撤销 toast -->
     <div class="undo-toast" v-if="undoToast">
       <span>{{ undoToast }}</span>
       <button @click="undo()">撤销</button>
-      <button style="color: var(--muted)" @click="undoToast = null">✕</button>
+      <button style="color: var(--text-3)" @click="undoToast = null">✕</button>
     </div>
   </div>
 </template>

@@ -135,7 +135,7 @@ onUnmounted(() => unlisteners.forEach(u => u()));
 </script>
 
 <template>
-  <div class="modal-mask" @click.self="!running && $emit('close')">
+  <div class="modal-mask" @mousedown.self="!running && $emit('close')">
     <div class="modal">
       <header>
         导出精选集（{{ props.ids.length }} 张已选中 · 只写副本，原图一个字节都不改）

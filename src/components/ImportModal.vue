@@ -102,7 +102,7 @@ defineExpose({ refreshSources, fail });
 </script>
 
 <template>
-  <div class="modal-mask" @click.self="$emit('close')">
+  <div class="modal-mask" @mousedown.self="$emit('close')">
     <div class="modal">
       <header>
         导入照片 / 视频

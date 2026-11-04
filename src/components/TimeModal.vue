@@ -65,7 +65,7 @@ async function apply() {
 </script>
 
 <template>
-  <div class="modal-mask" @click.self="$emit('close')">
+  <div class="modal-mask" @mousedown.self="$emit('close')">
     <div class="modal">
       <header>
         批量修正拍摄时间（{{ ids.length }} 张 · 原图不会被修改，随时可撤销）

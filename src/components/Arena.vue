@@ -78,7 +78,7 @@ const verdict = computed(() => {
 </script>
 
 <template>
-  <div class="arena-mask" @click.self="$emit('close')">
+  <div class="arena-mask" @mousedown.self="$emit('close')">
     <div class="arena">
       <header class="arena-head">
         <b>擂台 · 连拍组 #{{ group }}</b>

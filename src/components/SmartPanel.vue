@@ -138,7 +138,7 @@ async function removeAlbum(id: number) {
 </script>
 
 <template>
-  <div class="modal-mask" @click.self="$emit('close')">
+  <div class="modal-mask" @mousedown.self="$emit('close')">
     <div class="modal" style="width: min(920px, 94vw)">
       <header>
         ✨ 智能精选
