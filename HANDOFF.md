@@ -292,3 +292,33 @@ cd /Users/seveno/WanFlow && npm run build   # ✓ exit 0，53 modules，css 68.1
 - 6h / 2h 两个阈值仍是拍的；地点（GPS）与内容相似性（需持久化 CLIP 嵌入）都没数据。
 
 **回滚**：`git revert <feat sha>`（Storyline + mock 同一提交，退回纯 6h 逻辑）。
+
+## 2026-11-05 · 场景聚类引擎 + 事件层「设备拆分」纠错
+
+**判断**：
+- 上一轮的设备前缀拆分与产品北极星冲突：家人用不同手机拍同一幕，间隔落在 2–6h 时会被强行拆开。设备只能当弱证据，不能当断开规则；事件层回退为纯 6h 间隔。
+- 「同一天、跨设备、同场景」只能靠内容。第一步落引擎：`src-tauri/src/scene.rs` 纯函数 `cluster`，同场景 = 相邻间隔 ≤ 90min 且与场景质心余弦 ≥ 0.82，且整段跨度 ≤ 6h；任一侧无 embedding 时退回更严的 30min 时间判断。跨午夜连续拍摄自然并成一段（只看间隔/跨度，不强制按日历天切）。
+- 场景键 = 场景首张 media id，重算稳定；结果写 `media.scene_group`，可随时重算，不动原图。
+
+**改动**：
+- 新增 `src-tauri/src/scene.rs`：`SceneItem{id,ts,emb}`、`SceneParams`（90min / 6h / 0.82 / 30min）、`cluster`、`rebuild`（事务内重算并写 `scene_group`，返回 `scenes/images/withEmb/missingEmb/changed`）、`rebuild_scenes` 命令；13 个单测覆盖合并 / 内容断开 / 间隔 / 跨度 / 跨午夜 / 次日 / 无 emb / 维度不一致 / 乱序确定性 / 落库幂等 / 旧值清理。
+- `clip.rs`：`vec_to_blob` / `blob_to_vec` 从 `smart.rs` 提出来（embedding 落库格式单一来源）；`smart.rs` 改为引用。
+- `db.rs`：`ensure_columns` 增 `scene_group`，加 `idx_media_scene`。
+- `lib.rs`：注册 `scene::rebuild_scenes`（第 34 个命令）。
+- `Storyline.vue` / `mock.ts`：移除 `EVENT_GAP_MIN`、`filePrefix`、设备前缀判断与安卓演示日；toast / title 文案同步；事件边界只剩 6h 与「同连拍组不拆」。
+
+**验证**：
+```bash
+cd /Users/seveno/WanFlow/src-tauri && cargo test   # ✓ 53 passed（原 40 + 场景 13）
+cd /Users/seveno/WanFlow && npm run build          # ✓ exit 0，53 modules，css 68.17 kB / js 178.06 kB，716ms
+```
+- 浏览器 1440×900（/tmp/wanflow-event-no-device.png）：按事件 13 → **12 段**，11/02 由 18:22 + 14:09 两段并回 `18:08` 一段 19 张；按天仍 11 天；toast 已是「超过 6 小时断开；跨午夜连续拍仍算一段。换手机不会断开。」
+- 场景落库路径用内存 SQLite 测过：4 张分两场景、`scene_group` 写入 1/1/3/3、重复 rebuild `changed=0`、旧场景值被清空。
+
+**已知 / 风险**：
+- 真实库（`~/Library/Caches/com.wanflow.app/wanflow.db`）30 行、`emb` 0/30、CLIP 模型未下载（需 `clip-vit-b32-q8.onnx` + tokenizer，约 150 MB）→ 0.82 / 90min / 6h 都还没有真实照片校准；这批还是合成测试图。
+- `scene_group` 尚未暴露给 `MediaItem`，故事线还没有「按场景」——接 UI 前，这个引擎在应用里不可见。
+- CLIP ViT-B/32 对「同场景不同角度」的分辨力是最大未验证风险；若阈值分不开，需要换更大模型或补 phash / 地点信号。
+- `rebuild` 清理旧场景值用 `json_each`（SQLite JSON1，bundled 版本内置，测试已通过）。
+
+**回滚**：`git revert 84768ae a056b65`（先退事件层修复，再退引擎；`scene_group` 列留在库里不影响旧代码）。
