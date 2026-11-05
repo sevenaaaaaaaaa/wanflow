@@ -269,3 +269,26 @@ cd /Users/seveno/WanFlow && npm run build   # ✓ exit 0，53 modules，css 68.1
 - 演示库时间被改过（两场日 + 跨午夜夜拍），真实库不受影响。
 
 **回滚**：`git revert <feat sha>`（mock 与 Storyline 在同一个 feat 提交里，一起退回按天逻辑）。
+
+## 2026-11-05 · 事件边界加设备维度（2–6h 换设备即断开）
+
+**判断**：6 小时一刀切会把「下午出门一趟、傍晚回家」并成一段，也会把「同一场拍摄里换机位」拆开。回头查了数据面：media 表（`src-tauri/src/db.rs:12-30`）没有 GPS、没有相机 Make/Model；`src-tauri/src/timefix.rs:42-53` 只读 DateTimeOriginal/DateTime；phash 已入库（`src-tauri/src/phash.rs:1-20`）但 `MEDIA_COLS`（`src-tauri/src/commands.rs:641-645`）没 SELECT 出来；CLIP 只做语义搜索、没有嵌入表。所以这轮只做「不新增数据也能判」的那一维：**文件名前缀当设备指纹**（IMG_/PXL_/Screenshot_）。地点、内容相似性等真有数据了再上。
+
+**改动**（纯前端）：
+- `src/components/Storyline.vue`：`EVENT_GAP_MAX = 6h`、`EVENT_GAP_MIN = 2h`；`filePrefix()` 取文件名前缀小写；`isSessionBreak(prev,next)`：同连拍组 → 不拆；> 6h → 拆；≤ 2h → 不拆；2–6h 之间 **前缀变了才拆**。toast/按钮 title 同步新规则。
+- `src/dev/mock.ts`：新增 `DEVICE_DAY = 3`（11/02）下午换成安卓机拍（PXL_ 前缀、14:09 起）；并修了一个演示数据的坑——连拍组原本会跨设备边界，导致「同连拍组永不拆」把设备断点吃掉，现在换设备时重置连拍组。
+
+**验证**：
+```bash
+cd /Users/seveno/WanFlow && npm run build   # ✓ exit 0，53 modules，css 68.17 kB / js 178.37 kB，756ms
+```
+- 1440×900 按天（/tmp/wanflow-device-day.png）：11 天，11/02 仍是 19 张一行。
+- 1440×900 按事件（/tmp/wanflow-device-event.png）：13 个事件，11/02 拆成 18:22（11 张）与 14:09（8 张）；toast 文案已是「超过 6 小时断开；2–6 小时间换了设备也断开」。
+- 页面内取数核对：`api.listMedia({})` 159 张里 PXL_ 前缀 9 张；分组边界对的 burstGroup 均为 null、间隔 14588s（4h03m）→ 前缀不同 → 拆开。
+- 中间用 `window.__dbg` 临时打点定位到「连拍组跨设备」这个真因，验证完已删除，构建产物无残留。
+
+**已知**：
+- 前缀只是设备指纹的粗代理：同机不同 App、微信保存图、改名后导出都会让前缀漂移；真相机型号要加 Rust/DB 列（Make/Model）才准。
+- 6h / 2h 两个阈值仍是拍的；地点（GPS）与内容相似性（需持久化 CLIP 嵌入）都没数据。
+
+**回滚**：`git revert <feat sha>`（Storyline + mock 同一提交，退回纯 6h 逻辑）。
