@@ -22,11 +22,21 @@ export interface MediaItem {
   exposure: number | null;
   burstGroup: number | null;
   burstBest: number | null;
+  /** 场景键（场景首张照片的 id）；还没建场景索引时为 null */
+  sceneGroup: number | null;
 }
 
 export interface ListResult {
   items: MediaItem[];
   total: number;
+}
+
+export interface RebuildScenesStats {
+  scenes: number;
+  images: number;
+  withEmb: number;
+  missingEmb: number;
+  changed: number;
 }
 
 export interface ScanStatus {
@@ -143,6 +153,8 @@ export interface ScoredMedia {
   exposure: number | null;
   burstGroup: number | null;
   burstBest: number | null;
+  /** 场景键（场景首张照片的 id）；还没建场景索引时为 null */
+  sceneGroup: number | null;
 }
 
 export interface SmartSelectResult {
@@ -228,6 +240,7 @@ export const api = {
     limit?: number;
   }) => invoke<ListResult>("list_media", { query }),
   stats: () => invoke<Stats>("stats"),
+  rebuildScenes: () => invoke<RebuildScenesStats>("rebuild_scenes"),
   setDecision: (ids: number[], decision: string | null, stars: number | null) =>
     invoke<string>("set_decision", { ids, decision, stars }),
   developPage: (keepIds: number[], restIds: number[]) =>

@@ -11,6 +11,8 @@ const emit = defineEmits<{
   export: [];
 }>();
 
+type GroupMode = "day" | "event" | "scene";
+
 interface Day {
   key: string;
   ts: number;
@@ -28,6 +30,7 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const activeIdx = ref(0);
 const busy = ref(false);
+const rebuilding = ref(false);
 const flashing = ref(false);
 const leaving = ref(false);
 const root = ref<HTMLElement | null>(null);
@@ -68,7 +71,7 @@ const kept = ref<MediaItem[]>([]);
 // 日期与跨度随记录走，按天 / 按事件两种成页方式才能并存同一本册子。
 const PAGES_KEY = "wanflow-developed-pages";
 const LEGACY_DAYS_KEY = "wanflow-developed-days";
-interface DevelopedPage { ids: number[]; ts: number; endTs: number; mode: "day" | "event" }
+interface DevelopedPage { ids: number[]; ts: number; endTs: number; mode: GroupMode }
 const developedPages = ref<Record<string, DevelopedPage>>({});
 function keyToTs(key: string) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
@@ -155,11 +158,15 @@ function monthLabel(ts: number) {
   return p.y + " 年 " + p.m + " 月";
 }
 
-// 成页方式：day = 日历天；event = 一次连续拍摄（间隔 > 6 小时就断，跨午夜接着拍算同一段）
+// 成页方式：day = 日历天；event = 一次连续拍摄（间隔 > 6 小时就断）；
+// scene = 内容场景（时间邻近 + CLIP 相似度，Rust 端已写回 scene_group）。
 // 设备 / 文件名不参与断开：家人换手机拍同一场景时，它们会把同一段拆散。
 const GROUP_MODE_KEY = "wanflow-group-mode";
-const groupMode = ref<"day" | "event">("day");
-try { if (localStorage.getItem(GROUP_MODE_KEY) === "event") groupMode.value = "event"; } catch { /* 忽略 */ }
+const groupMode = ref<GroupMode>("day");
+try {
+  const saved = localStorage.getItem(GROUP_MODE_KEY);
+  if (saved === "event" || saved === "scene") groupMode.value = saved;
+} catch { /* 忽略 */ }
 const EVENT_GAP_MAX = 6 * 3600; // 只按拍摄间隔兜底
 // 连拍组永远不拆（同一组照片的时间跨度不构成新事件）。
 // 是否同一场景交给内容（scene）判断，这里不做设备猜测。
@@ -201,7 +208,44 @@ function groupByEvent(list: MediaItem[]): Day[] {
   out.sort((a, b) => b.ts - a.ts);
   return out;
 }
-const days = computed<Day[]>(() => (groupMode.value === "day" ? groupByDay(items.value) : groupByEvent(items.value)));
+// 场景键来自旁车库；没有任何一张带场景键时，说明索引还没建，界面会退回事件模式。
+const sceneReady = computed(() => items.value.some((m) => m.sceneGroup !== null));
+function groupByScene(list: MediaItem[]): Day[] {
+  const sorted = [...list].sort((a, b) => a.effTime - b.effTime);
+  const buckets = new Map<string, MediaItem[]>();
+  let nullKey: string | null = null;
+  let last: MediaItem | null = null;
+  for (const m of sorted) {
+    if (m.sceneGroup !== null) {
+      const key = "sc-" + m.sceneGroup;
+      const bucket = buckets.get(key);
+      if (bucket) bucket.push(m);
+      else buckets.set(key, [m]);
+      nullKey = null;
+    } else {
+      // 没有场景键的照片退回事件间隔，保证一张都不会从页面上消失
+      if (nullKey === null || (last && isSessionBreak(last, m))) {
+        nullKey = "nul-" + m.id;
+        buckets.set(nullKey, [m]);
+      } else {
+        buckets.get(nullKey)!.push(m);
+      }
+    }
+    last = m;
+  }
+  const out: Day[] = [];
+  for (const [key, group] of buckets) {
+    group.sort((a, b) => a.effTime - b.effTime);
+    out.push({ key, ts: group[0].effTime, endTs: group[group.length - 1].effTime, items: group });
+  }
+  out.sort((a, b) => b.ts - a.ts);
+  return out;
+}
+const days = computed<Day[]>(() => {
+  if (groupMode.value === "scene") return groupByScene(items.value);
+  if (groupMode.value === "event") return groupByEvent(items.value);
+  return groupByDay(items.value);
+});
 
 const months = computed(() => {
   const out: { label: string; days: Day[] }[] = [];
@@ -218,9 +262,10 @@ const active = computed<Day | null>(() => days.value[activeIdx.value] ?? null);
 const activeParts = computed(() => (active.value ? parts(active.value.ts) : null));
 
 const isEvent = computed(() => groupMode.value === "event");
-const groupUnit = computed(() => (isEvent.value ? "个事件" : "天"));
-const groupShort = computed(() => (isEvent.value ? "段" : "天"));
-const groupNoun = computed(() => (isEvent.value ? "这一段" : "这一天"));
+const isScene = computed(() => groupMode.value === "scene");
+const groupUnit = computed(() => (isScene.value ? "个场景" : isEvent.value ? "个事件" : "天"));
+const groupShort = computed(() => (isScene.value ? "场" : isEvent.value ? "段" : "天"));
+const groupNoun = computed(() => (isScene.value ? "这一场" : isEvent.value ? "这一段" : "这一天"));
 
 function timeOf(ts: number) {
   const d = new Date(ts * 1000);
@@ -238,10 +283,10 @@ function daySpan(a: number, b: number) {
   const d2 = new Date(y.getFullYear(), y.getMonth(), y.getDate()).getTime();
   return Math.max(1, Math.round((d2 - d1) / 86400000) + 1);
 }
-// 事件页的副标题：同一天给时间弧，跨天给「M/D HH:MM → M/D HH:MM · N 天」
+// 事件/场景页的副标题：同一天给时间弧，跨天给「M/D HH:MM → M/D HH:MM · N 天」
 const spanLine = computed(() => {
   const a = active.value;
-  if (!a || !isEvent.value) return "";
+  if (!a || groupMode.value === "day") return "";
   if (sameCalDay(a.ts, a.endTs)) return timeOf(a.ts) + " – " + timeOf(a.endTs);
   const s = parts(a.ts);
   const e = parts(a.endTs);
@@ -253,8 +298,7 @@ function pageLabel(p: Page) {
   if (a.y === b.y && a.m === b.m && a.d === b.d) return a.m + " 月 " + a.d + " 日";
   return a.m + "/" + pad2(a.d) + " – " + b.m + "/" + pad2(b.d);
 }
-function setGroupMode(mode: "day" | "event") {
-  if (mode === groupMode.value) return;
+function applyGroupMode(mode: GroupMode) {
   const anchor = active.value?.ts ?? 0;
   groupMode.value = mode;
   try { localStorage.setItem(GROUP_MODE_KEY, mode); } catch { /* 忽略 */ }
@@ -262,7 +306,33 @@ function setGroupMode(mode: "day" | "event") {
   let i = list.findIndex((p) => anchor >= p.ts && anchor <= p.endTs);
   if (i < 0) i = Math.min(activeIdx.value, list.length - 1);
   activeIdx.value = Math.max(0, i);
-  if (mode === "event") emit("toast", "按拍摄间隔成页：超过 6 小时断开；跨午夜连续拍仍算一段。换手机不会断开。");
+}
+function setGroupMode(mode: GroupMode) {
+  if (mode === groupMode.value) return;
+  if (mode === "scene" && !sceneReady.value) {
+    emit("toast", "还没有场景索引：先点左栏「重建场景」，或先下载 CLIP 模型建语义索引。已按事件成页。");
+    if (groupMode.value !== "event") applyGroupMode("event");
+    return;
+  }
+  applyGroupMode(mode);
+  if (mode === "scene") emit("toast", "按内容成页：同一时间、画面相似的照片收进一场；跨设备拍同一幕也会在一起。");
+  else if (mode === "event") emit("toast", "按拍摄间隔成页：超过 6 小时断开；跨午夜连续拍仍算一段。换手机不会断开。");
+}
+
+async function rebuildScenes() {
+  if (rebuilding.value) return;
+  rebuilding.value = true;
+  emit("toast", "正在重建场景…");
+  try {
+    const r = await api.rebuildScenes();
+    await load(true);
+    const miss = r.missingEmb > 0 ? `；${r.missingEmb} 张没有语义向量，先按时间分组` : "";
+    emit("toast", `场景已重建：${r.scenes} 场 · ${r.images} 张${miss}`);
+  } catch (e) {
+    emit("toast", "重建失败：" + e);
+  } finally {
+    rebuilding.value = false;
+  }
 }
 
 function defaultBudget(n: number) {
@@ -588,6 +658,11 @@ async function load(silent = false) {
     ]);
     items.value = pending.items;
     kept.value = keeps.items;
+    // 上次停在「按场景」但索引被清掉 / 还没建：安静退回事件模式，不让页面空白
+    if (groupMode.value === "scene" && !sceneReady.value) {
+      groupMode.value = "event";
+      try { localStorage.setItem(GROUP_MODE_KEY, "event"); } catch { /* 忽略 */ }
+    }
     stats.value = await api.stats();
     if (activeIdx.value > days.value.length - 1) {
       activeIdx.value = Math.max(0, days.value.length - 1);
@@ -722,6 +797,18 @@ defineExpose({ startTour });
             title="按拍摄间隔成页：超过 6 小时算新的一段；跨午夜连续拍摄留在同一段；换手机拍同一场景不会断开"
             @click="setGroupMode('event')"
           >按事件</button>
+          <button
+            :class="{ on: groupMode === 'scene' }"
+            :aria-pressed="groupMode === 'scene'"
+            title="按内容成页：同一时间、画面相似的照片收进一场；跨设备拍同一幕也会并在一起"
+            @click="setGroupMode('scene')"
+          >按场景</button>
+        </div>
+        <div class="group-tools">
+          <button class="gt-rebuild" :disabled="rebuilding" title="重算场景分组：只写旁车数据库，不动原图" @click="rebuildScenes">
+            {{ rebuilding ? "重建中…" : "重建场景" }}
+          </button>
+          <span class="gt-state">{{ sceneReady ? "已建场景" : "未建索引" }}</span>
         </div>
         <div class="tl-scroll">
           <template v-for="mo in months" :key="mo.label">
@@ -735,7 +822,7 @@ defineExpose({ startTour });
             >
               <span class="tl-dot" :style="{ '--w': Math.min(1, d.items.length / 34) }"></span>
               <span class="tl-date">{{ parts(d.ts).m }}/{{ pad2(parts(d.ts).d) }}</span>
-              <span class="tl-week">{{ isEvent ? timeOf(d.ts) : parts(d.ts).w }}</span>
+              <span class="tl-week">{{ groupMode === 'day' ? parts(d.ts).w : timeOf(d.ts) }}</span>
               <span class="tl-n">{{ d.items.length }}</span>
             </button>
           </template>
@@ -755,7 +842,9 @@ defineExpose({ startTour });
           <div class="rail-switch" role="group" aria-label="成页方式">
             <button :class="{ on: groupMode === 'day' }" :aria-pressed="groupMode === 'day'" @click="setGroupMode('day')">按天</button>
             <button :class="{ on: groupMode === 'event' }" :aria-pressed="groupMode === 'event'" @click="setGroupMode('event')">按事件</button>
+            <button :class="{ on: groupMode === 'scene' }" :aria-pressed="groupMode === 'scene'" @click="setGroupMode('scene')">按场景</button>
           </div>
+          <button class="rail-rebuild" :disabled="rebuilding" title="重算场景分组" @click="rebuildScenes">重建</button>
           <button
             v-for="d in days"
             :key="d.key"
@@ -764,7 +853,7 @@ defineExpose({ startTour });
             @click="jump(d.key)"
           >
             <b>{{ parts(d.ts).m }}/{{ pad2(parts(d.ts).d) }}</b>
-            <span>{{ isEvent ? timeOf(d.ts) : parts(d.ts).w }} · {{ d.items.length }}</span>
+            <span>{{ groupMode === 'day' ? parts(d.ts).w : timeOf(d.ts) }} · {{ d.items.length }}</span>
           </button>
         </nav>
 
@@ -775,7 +864,7 @@ defineExpose({ startTour });
               <span class="day-sub">
                 <b class="day-month">{{ activeParts.m }} 月</b>
                 <span class="day-week">{{ activeParts.y }} · {{ activeParts.w }}</span>
-                <span v-if="isEvent" class="day-span">{{ spanLine }}</span>
+                <span v-if="groupMode !== 'day'" class="day-span">{{ spanLine }}</span>
               </span>
             </div>
             <div class="day-meta">
@@ -1027,13 +1116,34 @@ defineExpose({ startTour });
   border-radius: 5px;
   background: transparent;
   color: var(--text-4);
+  padding: 0;
   font-family: var(--font-mono);
   font-size: 9.5px;
-  letter-spacing: .12em;
+  letter-spacing: .06em;
   transition: background var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out);
 }
 .group-switch button:hover { color: var(--text-2); }
 .group-switch button.on { background: var(--accent-soft); color: var(--accent-ink); }
+.group-tools {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: -1px 12px 3px;
+}
+.gt-rebuild {
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--text-4);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: .1em;
+  transition: color var(--dur-2) var(--ease-out);
+}
+.gt-rebuild:hover { color: var(--accent-ink); }
+.gt-rebuild:disabled { opacity: .45; }
+.gt-state { font-family: var(--font-mono); font-size: 8.5px; letter-spacing: .07em; color: var(--text-4); white-space: nowrap; }
 .tl-scroll { flex: 1; overflow-y: auto; padding: 0 9px 12px; }
 .tl-month {
   position: sticky;
@@ -1156,6 +1266,7 @@ defineExpose({ startTour });
 
 /* 窄屏「日签」：默认不出现，920 以下接手时间轴的换天职责 */
 .day-rail { display: none; }
+.rail-rebuild { display: none; }
 
 .day-head {
   display: flex;
@@ -2006,6 +2117,21 @@ defineExpose({ startTour });
     letter-spacing: .1em;
   }
   .rail-switch button.on { background: var(--accent-soft); color: var(--accent-ink); }
+  .rail-rebuild {
+    flex: none;
+    display: flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 11px;
+    border: 1px solid var(--border-1);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-3);
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: .08em;
+  }
+  .rail-rebuild:disabled { opacity: .45; }
   .rail-day {
     flex: none;
     display: flex;

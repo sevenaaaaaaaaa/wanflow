@@ -492,7 +492,7 @@ pub fn album_media(state: State<'_, AppState>, id: i64) -> Result<Vec<ScoredMedi
         .query_map([id], |r| {
             Ok(ScoredMedia {
                 item: crate::commands::map_media_item(r)?,
-                score: r.get::<_, Option<f64>>(20)?.unwrap_or(0.0) as f32,
+                score: r.get::<_, Option<f64>>(21)?.unwrap_or(0.0) as f32,
             })
         })
         .map_err(|e| e.to_string())?

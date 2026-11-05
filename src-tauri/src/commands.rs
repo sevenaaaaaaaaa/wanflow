@@ -513,6 +513,8 @@ pub struct MediaItem {
     pub exposure: Option<f64>,
     pub burst_group: Option<i64>,
     pub burst_best: Option<i64>,
+    /// 场景键（= 场景首张 media id）；未建索引时为 None
+    pub scene_group: Option<i64>,
 }
 
 #[derive(Serialize)]
@@ -634,6 +636,7 @@ pub(crate) fn map_media_item(r: &rusqlite::Row<'_>) -> rusqlite::Result<MediaIte
         exposure: r.get(17)?,
         burst_group: r.get(18)?,
         burst_best: r.get(19)?,
+        scene_group: r.get(20)?,
     })
 }
 
@@ -642,7 +645,7 @@ pub(crate) const MEDIA_COLS: &str =
     "m.id, m.path, m.filename, m.kind, m.size_bytes, m.thumb, m.preview, m.width, m.height,
      m.dup_group, m.time_source, m.time_confidence,
      COALESCE(ot.eff, m.base_time) AS eff, vd.decision, vs.stars,
-     m.quality, m.sharpness, m.exposure, m.burst_group, m.burst_best";
+     m.quality, m.sharpness, m.exposure, m.burst_group, m.burst_best, m.scene_group";
 
 // ============ 决策（可撤销事件） ============
 

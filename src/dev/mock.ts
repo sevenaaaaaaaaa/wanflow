@@ -171,6 +171,8 @@ const items: MediaItem[] = [];
 const SPLIT_DAYS = new Set([1, 10]);
 // 还有一晚拍到过了午夜：按天会被拆成两行，按事件仍是一段
 const NIGHT_DAY = 5;
+// 同一场出门里坐下吃饭 2.4 小时：仍在同一个「事件」内，但按场景会切成两场
+const PAUSE_DAYS = new Map<number, number>([[2, 0.55], [3, 0.6]]);
 
 for (const plan of PLANS) {
   const base = new Date();
@@ -178,14 +180,16 @@ for (const plan of PLANS) {
   base.setHours(night ? 23 : 18, night ? 20 : 40, 0, 0);
   base.setDate(base.getDate() - plan.ago);
   const splitAt = SPLIT_DAYS.has(plan.ago) ? Math.floor(plan.count * 0.55) : -1;
+  const pauseAt = PAUSE_DAYS.has(plan.ago) ? Math.floor(plan.count * PAUSE_DAYS.get(plan.ago)!) : -1;
   let burst: number | null = null;
   let burstLeft = 0;
   for (let i = 0; i < plan.count; i++) {
-    const t = night
+    let t = night
       ? Math.floor(base.getTime() / 1000) + i * 480
       : i >= splitAt && splitAt > 0
         ? Math.floor(base.getTime() / 1000) - 9 * 3600 - (i - splitAt) * 70
         : Math.floor(base.getTime() / 1000) - i * 90 - (i % 3) * 40;
+    if (pauseAt > 0 && i >= pauseAt) t -= Math.round(2.4 * 3600);
     if (burstLeft === 0 && i > 2 && (i + plan.ago) % 6 === 0) {
       burst = 500 + idSeq;
       burstLeft = 2 + ((i + plan.ago) % 3);
@@ -217,9 +221,37 @@ for (const plan of PLANS) {
       exposure: 30 + ((id * 23) % 60),
       burstGroup: burst,
       burstBest: burst !== null && burstLeft === 0 ? 1 : null,
+      sceneGroup: null,
     });
   }
 }
+
+// 演示库模拟 Rust 的场景键：同一段连续拍摄（相邻 ≤ 90 分钟）收进一场。
+// 真实应用的 scene_group 由 CLIP 内容相似度算出来；这里只用来驱动「按场景」界面。
+function assignSceneGroups() {
+  const byDay = new Map<string, MediaItem[]>();
+  for (const m of items) {
+    m.sceneGroup = null;
+    const key = new Date(m.effTime * 1000).toDateString();
+    const list = byDay.get(key);
+    if (list) list.push(m);
+    else byDay.set(key, [m]);
+  }
+  let sceneSeq = 1;
+  for (const list of byDay.values()) {
+    list.sort((a, b) => a.effTime - b.effTime);
+    let scene: number | null = null;
+    let prevT = 0;
+    for (const m of list) {
+      if (scene === null || m.effTime - prevT > 90 * 60) scene = sceneSeq++;
+      m.sceneGroup = scene;
+      prevT = m.effTime;
+    }
+  }
+}
+// 演示库调试开关：?scene=off 启动时没有场景索引，用来验收「未建索引 → 重建场景」这条路径
+const SCENE_OFF = new URLSearchParams(location.search).get("scene") === "off";
+if (!SCENE_OFF) assignSceneGroups();
 
 interface Snap { decision: MediaItem["decision"]; stars: number | null }
 interface Change { ids: number[]; prev: Snap[]; next: Snap[]; label: string }
@@ -338,4 +370,15 @@ export function installDevMock(): void {
   api.listSources = async () => [];
   api.listAlbums = async () => [];
   api.clipStatus = async () => ({ modelsReady: false, embCount: 0, imageCount: 0, ollamaReady: false, ollamaModels: [] });
+  api.rebuildScenes = async () => {
+    assignSceneGroups();
+    return {
+      scenes: new Set(items.map((m) => m.sceneGroup)).size,
+      images: items.length,
+      // 演示库没有真向量，界面按「全部有键」展示，避免吐出一条与 15 场自相矛盾的提示
+      withEmb: items.length,
+      missingEmb: 0,
+      changed: 0,
+    };
+  };
 }
