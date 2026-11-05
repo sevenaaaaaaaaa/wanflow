@@ -115,9 +115,11 @@ kbd {
   padding: 0 9px;
   border-radius: var(--r-pill);
   background: var(--hover);
-  color: var(--text-2);
-  font-size: var(--fs-1);
-  font-weight: 500;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: .04em;
+  font-weight: 400;
   white-space: nowrap;
 }
 .chip.accent { background: var(--accent-soft); color: var(--accent-ink); }
@@ -129,17 +131,17 @@ kbd {
   gap: 8px;
   height: 30px;
   padding: 0 10px 0 9px;
-  border: 1px solid transparent;
+  border: 1px solid var(--border-1);
   border-radius: var(--r-pill);
-  background: var(--accent-soft);
-  color: var(--accent-ink);
+  background: transparent;
+  color: var(--text-2);
   font-size: var(--fs-2);
-  font-weight: 600;
+  font-weight: 550;
   white-space: nowrap;
   cursor: pointer;
-  transition: background var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out);
+  transition: background var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out);
 }
-.continue-btn:hover { background: oklch(from var(--accent) l c h / .24); }
+.continue-btn:hover { background: var(--hover); border-color: var(--border-2); color: var(--text-1); }
 .continue-btn .dot {
   width: 6px;
   height: 6px;
@@ -150,16 +152,18 @@ kbd {
 .continue-btn b {
   padding: 1px 6px;
   border-radius: var(--r-pill);
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
   font-family: var(--font-mono);
   font-size: var(--fs-1);
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.45;
 }
 .continue-btn.done { background: transparent; border-color: var(--border-2); color: var(--text-2); }
 .continue-btn.done .dot { background: var(--text-4); box-shadow: none; }
-@media (max-width: 1180px) { .continue-btn .t { display: none; } }
+@media (max-width: 1000px) { .continue-btn .t { display: none; } }
+@media (max-width: 900px) { .topbar .chip { display: none; } }
+@media (max-width: 640px) { .topbar .ghost { display: none; } }
 
 /* ── 外壳 ───────────────────────────────────────────────── */
 .app-shell {
@@ -188,15 +192,16 @@ kbd {
 
 .brand {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 1px;
-  font-size: var(--fs-4);
-  font-weight: 600;
-  letter-spacing: -.015em;
-  margin-right: 4px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -.02em;
+  margin-right: 8px;
   user-select: none;
 }
-.brand em { font-style: normal; color: var(--accent); }
+.brand em { font-style: italic; color: var(--accent); letter-spacing: -.03em; }
 
 /* 分段控件 */
 .seg {
@@ -216,6 +221,7 @@ kbd {
   color: var(--text-2);
   font-size: var(--fs-2);
   font-weight: 500;
+  white-space: nowrap;
   transition: background var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out);
 }
 .seg button:hover { color: var(--text-1); }
