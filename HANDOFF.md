@@ -199,3 +199,41 @@ cd /Users/seveno/WanFlow && npm run build   # ✓ 53 modules，css 56.34 kB / js
 **下一个动作**：`npm run tauri dev` 首次进入看引导是否自动出现（真实库 localStorage 可能已有旧 key）；然后按用户反馈决定是继续磨入口，还是回到"按人/地点/事件成页"的信息架构。
 
 **回滚**：`git revert 3ab32be`。
+
+
+---
+
+## 2026-11-05 · DSH / lead —— 故事线视觉重做：把「一天一页」做成一张真正的相纸
+
+**用户诉求**：把当前页面做到获奖级视觉（Awwwards / Webby / FWA 基准），按 typography / whitespace / hierarchy / color / motion / micro_interaction / responsive / originality 八维自查迭代，有 gap 就继续 patch。
+
+**判断**：旧的表格布局信息都对，但"像后台表格"不像暗房。这一轮不加功能、不改逻辑，只换表达语言：
+- **排版三分**：展示层用衬线（New York / 宋体）——大日期 58–76px、纸面落款、精选册标题；元数据用等宽 8.5–10px（页码、时长、页脚）；正文仍用 Albert Sans。三级字号从此各有职责。
+- **相纸**：暖米白 `--paper: oklch(97% .021 88)` + 180px feTurbulence 纤维 + 四角印刷角标 + 灯箱暖光 + 接触阴影；照片衬在纸上，而不是浮在暗底。
+- **显影**：照片载入 860ms 从 `blur(11px) saturate(.32)` 显到清晰，按 70ms 递增；按「显影」时纸面轻微收缩 + 中央白光 300ms，然后翻页。
+- **底片条**：96×70 缩略、左下角编号、选中绿环、拖拽时整条变暗、被拖那张反亮；右栏空册改成一张微微歪着的纸（-0.7°），显影后逐页叠上（±0.5° 交替）。
+- **窄屏**：≤920px 左侧时间轴收成顶部横滑「日签」（日期 + 周几 + 张数），不从功能上消失；≤760 compose 换行；≤560 再收元数据。
+
+**改了什么**（提交 `d5e19d2`，3 个文件 +615/−272）：
+- `src/tokens.css`：新增 `--fs-6/--fs-7/--fs-day`、`--font-display`、一整套纸感变量；`--text-4` 暗色 61.5%→67%、亮色 57%→49%（10–11px 小字过 4.5:1）。
+- `src/styles.css`：字标改衬线（Flow 斜体绿）；「继续整理」从实心绿改描边（让「显影」成为页面唯一实心绿）；容量 chip 改等宽仪表字；顶栏在 1000/900/640 三档依次收起文案/容量/次要入口（修 768 中文逐字换行）。
+- `src/components/Storyline.vue`：模板加 `.day-rail`（窄屏日签）、`.day-sub`、`.pagemark`、`.ticks-wrap`、`.f-no`、`.ghost-mark`；样式重写页眉/相纸/compose/底片条/精选册/引导卡；`prefers-reduced-motion` 下全部停用。
+
+**验证**：
+```bash
+cd /Users/seveno/WanFlow && npm run build   # ✓ exit 0，53 modules，css 66.77 kB / js 174.07 kB，724ms
+```
+- 1440×900（/tmp/wanflow-final4.png）：大日期 05 + 页眉横线 + 700×525 相纸；compose 距纸底约 22px；右册 ghost 居中。
+- 1024（/tmp/wanflow-1024.png）：右册让位，页眉出现「已显影 0」。
+- 768（/tmp/wanflow-768b.png）：顶栏不再逐字换行；日签横滑正常；`scrollHeight=900`，无纵向溢出。
+- 引导态（/tmp/wanflow-tour.png）：卡片与页面同一套相纸语言。
+- `git status` 提交前只有这 3 个文件；提交后 clean。
+
+**已知小债**：
+- 组件里仍有若干裸 px 字号（9.5/8.5/10），与 tokens.css「禁止裸 px 字号」的约定不完全一致；下一轮可加 `--fs-0` 统一收口。
+- 相纸在真实照片下的白平衡/密度/颗粒强度还没校（DEV 样片是灰调 SVG）。
+
+**下一个动作**：`npm run tauri dev` 用真实照片看这一版；如果「纸」的比喻成立，再把成页逻辑从日期扩到事件/地点/人。
+
+**回滚**：`git revert d5e19d2`。
+
