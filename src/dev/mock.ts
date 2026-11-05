@@ -171,8 +171,6 @@ const items: MediaItem[] = [];
 const SPLIT_DAYS = new Set([1, 10]);
 // 还有一晚拍到过了午夜：按天会被拆成两行，按事件仍是一段
 const NIGHT_DAY = 5;
-// 还有一天下午换成了安卓手机拍：间隔不到 6 小时，但设备前缀变了，按事件应断开
-const DEVICE_DAY = 3;
 
 for (const plan of PLANS) {
   const base = new Date();
@@ -180,23 +178,14 @@ for (const plan of PLANS) {
   base.setHours(night ? 23 : 18, night ? 20 : 40, 0, 0);
   base.setDate(base.getDate() - plan.ago);
   const splitAt = SPLIT_DAYS.has(plan.ago) ? Math.floor(plan.count * 0.55) : -1;
-  const deviceSplit = plan.ago === DEVICE_DAY ? Math.floor(plan.count * 0.6) : -1;
   let burst: number | null = null;
   let burstLeft = 0;
   for (let i = 0; i < plan.count; i++) {
-    const android = deviceSplit > 0 && i >= deviceSplit;
     const t = night
       ? Math.floor(base.getTime() / 1000) + i * 480
-      : android
-        ? Math.floor(base.getTime() / 1000) - 4.33 * 3600 - (i - deviceSplit) * 80
-        : i >= splitAt && splitAt > 0
-          ? Math.floor(base.getTime() / 1000) - 9 * 3600 - (i - splitAt) * 70
-          : Math.floor(base.getTime() / 1000) - i * 90 - (i % 3) * 40;
-    // 换设备必换连拍组：否则一个连拍组跨过设备边界，按事件就永远不会断开
-    if (android) {
-      burst = null;
-      burstLeft = 0;
-    }
+      : i >= splitAt && splitAt > 0
+        ? Math.floor(base.getTime() / 1000) - 9 * 3600 - (i - splitAt) * 70
+        : Math.floor(base.getTime() / 1000) - i * 90 - (i % 3) * 40;
     if (burstLeft === 0 && i > 2 && (i + plan.ago) % 6 === 0) {
       burst = 500 + idSeq;
       burstLeft = 2 + ((i + plan.ago) % 3);
@@ -209,8 +198,8 @@ for (const plan of PLANS) {
     const decidedReject = !decidedKeep && id % 17 === 0;
     items.push({
       id,
-      path: android ? "/demo/PXL_" + (3000 + id) + ".jpg" : "/demo/IMG_" + (2000 + id) + ".HEIC",
-      filename: android ? "PXL_" + (3000 + id) + ".jpg" : "IMG_" + (2000 + id) + ".HEIC",
+      path: "/demo/IMG_" + (2000 + id) + ".HEIC",
+      filename: "IMG_" + (2000 + id) + ".HEIC",
       kind: "image",
       sizeBytes: 1800000 + ((id * 7919) % 2600000),
       thumb: photo(seed),
