@@ -237,3 +237,35 @@ cd /Users/seveno/WanFlow && npm run build   # ✓ exit 0，53 modules，css 66.7
 
 **回滚**：`git revert d5e19d2`。
 
+
+---
+
+## 2026-11-05 · 故事线支持按事件成页（纯前端）
+
+**判断**：日期是线性的，「地点 / 人」不是——它们必须先当筛子再分页；能直接当「页」的只有**事件**。而事件不需要新数据：effTime 已经在库里。所以先把成页单位从日历天扩成「一段连续拍摄」，成页逻辑重构但不碰 Rust / DB / 原图。
+
+**改动**：
+- `src/components/Storyline.vue`
+  - `Day` / `Page` 增加 `endTs`（这一页最后一张的时间）；新增 `groupByDay(list)` 与 `groupByEvent(list)`：升序扫描，相邻两张间隔 > 6 小时（`EVENT_GAP_SEC = 6 * 3600`）就断开，跨午夜连续拍自然合并；key = `evt-<首张 id>`。`days` 按 `groupMode`（localStorage `wanflow-group-mode`）从两者里取。
+  - 精选册改记「显影时的页」而不是日期：新 key `wanflow-developed-pages`（`{ ids, ts, endTs, mode }`），旧 `wanflow-developed-days` 一次性迁移；`rememberPage(page, ids)` 写入，新页完整覆盖旧页时把旧页换掉，避免同一批照片在册子里出现两次；`developed` 只在 ids 全部仍是 keep 时显示（⌘Z/⌘⇧Z 同步）。
+  - 文案与层级：左栏加 `.group-switch`（按天 / 按事件，aria-pressed）；事件模式下时间线每行显示开始时间 `HH:MM`（同一天可有多段）；页头副标题给 `spanLine`（同日 `18:17 – 18:40`，跨日 `10/31 23:28 → 11/01 00:08 · 2 天`）；纸脚/册子标签走 `pageLabel`（同日「M 月 D 日」，跨日「M/D – M/D」）；「这一天/天」按模式切「这一段/段」；切换时以当前页起点为锚，不跳页。
+  - 窄屏（≤920px）时间线隐藏时，日签行左侧加 `.rail-switch`（sticky），成页方式仍可切。
+  - 顺手修窄屏相纸溢出：≤920 纸宽改 `min(100%, calc((100vh - 440px) * 1.3333))`，之前 `width:100%` 会压到 compose。
+- `src/dev/mock.ts`（仅演示库）：把 ago=1 / ago=10 两天拆成上午 + 傍晚两场，ago=5 改成 23:20 起拍、跨过午夜（23:28 → 00:08），用来肉眼验证「按天拆两行 / 按事件仍一段」。
+
+**验证**：
+```bash
+cd /Users/seveno/WanFlow && npm run build   # ✓ exit 0，53 modules，css 68.17 kB / js 177.92 kB，761ms
+```
+- 1440×900 按天（/tmp/wanflow-day-final.png）：11 天，左栏开关「按天」选中，其余与相纸版一致。
+- 1440×900 按事件（/tmp/wanflow-event-final.png）：12 个事件；10/31 23:28 → 11/01 00:08 · 2 天（跨午夜合并成一段）；纸脚「10/31 – 11/01 · 2 天」。
+- 768×900（/tmp/wanflow-768-event2.png）：日签行左侧「按天/按事件」可切；相纸、compose、胶片条不再互相压；`scrollHeight=900`，无纵向溢出。
+- 交互实测：显影跨午夜那段 → 精选册 mini 显示「10/31 – 11/01 · 2 张」，事件数 12→11、已显影 1/12 段；⌘Z 后册子清空、事件回到 12；⌘⇧Z 后册子与标签都回来。
+- 切模式不跳页：11/05 事件页 → 按天仍是 11/05；10/31 23:28 事件 → 按天仍是 10/31。
+
+**已知**：
+- 6 小时阈值是拍的脑袋：真实库里「出门一天」可能超过 6 小时导致断成两段，等真实数据反馈再调。
+- 精选册只保证「新页完整覆盖旧页」时去重；两页部分重叠（把别页照片拖进来后各自显影）仍可能同一张照片出现在两页。
+- 演示库时间被改过（两场日 + 跨午夜夜拍），真实库不受影响。
+
+**回滚**：`git revert <feat sha>`（mock 与 Storyline 在同一个 feat 提交里，一起退回按天逻辑）。
