@@ -322,3 +322,41 @@ cd /Users/seveno/WanFlow && npm run build          # ✓ exit 0，53 modules，c
 - `rebuild` 清理旧场景值用 `json_each`（SQLite JSON1，bundled 版本内置，测试已通过）。
 
 **回滚**：`git revert 84768ae a056b65`（先退事件层修复，再退引擎；`scene_group` 列留在库里不影响旧代码）。
+
+## 2026-11-05 · 故事线「按场景」接入（第 2 步：UI）
+
+**做到哪**：2893e41。故事线第三种成页「按场景」接上 Rust 的 `scene_group`，无索引时安静回退事件，左栏给「重建场景」入口（桌面 + ≤920 窄屏日签带「重建」）。
+- 后端：`src-tauri/src/commands.rs:517` MediaItem 增 `scene_group: Option<i64>`；`:639` `r.get(20)`；`:644-648` MEDIA_COLS 末尾追加 `m.scene_group`；`src-tauri/src/smart.rs:495` 的 `ScoredMedia.score` 下标 20→21（按位置读列，必须跟着挪）。
+- 前端类型：`src/api.ts` MediaItem / ScoredMedia 增 `sceneGroup: number | null`，新增 `RebuildScenesStats` 与 `api.rebuildScenes()`。
+- `src/components/Storyline.vue`：`type GroupMode = "day" | "event" | "scene"`；`:212` `sceneReady`；`:213` `groupByScene`（`scene_group` 非空按 `sc-<id>` 分桶、不要求时间相邻；为空的照片按 6h 事件间隔兜底成 `nul-<首张 id>` 桶，保证一张不丢）；`:244` `days` 三选一；`:310` `setGroupMode`（无索引 → toast「还没有场景索引…」并留在事件模式）；`:322` `rebuildScenes()`（防重入 → `api.rebuildScenes()` → `load(true)` → toast 场数/张数/缺向量张数）；`load()` 里若停在 scene 但索引没了，静默退回 event 并写 localStorage。
+- 模板：桌面 `group-switch` 第三个「按场景」+`.group-tools`（重建场景 / 已建场景|未建索引，Storyline.vue:807 起）；窄屏 `.rail-switch` 三按钮 + `.rail-rebuild`（:847）；页头副标题与行内时间改为「非按天」都显示（:867）。
+- `src/dev/mock.ts`：`PAUSE_DAYS`（11/02、11/03 中途停 2.4h：事件不断、场景断）；`assignSceneGroups()` 按自然日 + 相邻 ≤90min 赋键，重建按钮在演示库里真的重算；`?scene=off` 启动时不建键，用来验收「未建索引 → 重建」路径。
+
+**为什么停**：本步完成并自测通过。真实库（emb 0/30、CLIP 模型未下载）的端到端与阈值校准是下一步，不混在这个提交里。
+
+**下一个动作**：下载 CLIP 模型（`~/Library/Caches/com.wanflow.app/models`，约 150MB）→ 智能精选里建索引 → 故事线「重建场景」→ 人工核对三项验收（跨设备同场景合并 ≥80%、异场景误并 ≤10%、单日场景数与人工差 ≤20%）。
+
+**别踩**：
+- 往 `MEDIA_COLS` 加列后，`src-tauri/src/smart.rs` 里所有按下标读列的地方都要跟着挪，否则分数静默错位；这次 `score` 从 20 改 21。
+- 场景按 `scene_group` 分桶**不要求时间相邻**（真实场景可能跨午夜）；演示库按自然日切键，所以跨午夜会拆成两场，不要拿演示数据当真实行为。
+- `npm run build` 不查 TS 类型（esbuild 剥类型），字段漏了要浏览器实测。
+- 用 `?scene=off` 测空索引；不要为了测空态去改数据库。
+
+**验证**：
+```bash
+cd /Users/seveno/WanFlow/src-tauri && cargo test   # ✓ 53 passed
+cd /Users/seveno/WanFlow && npm run build          # ✓ exit 0，53 modules，css 69.08 kB / js 189.81 kB，658ms
+```
+- 1440×900（/tmp/wanflow-scene-1440b.png）：按场景 **15 场**（按天 11、按事件 12）；11/02、11/03 因 2.4h 停顿各多切一场；页头 `18:17 – 18:40`、时间线行内显示开始时间；状态「已建场景」。
+- 空索引（/tmp/wanflow-scene-fallback.png，`/?scene=off`）：启动回退「按事件」、状态「未建索引」；点「按场景」toast「还没有场景索引…」且不切走。
+- 重建：点「重建场景」→ toast「场景已重建：15 场 · 159 张」→「已建场景」→ 可切场景 15 行。
+- 显影场景页：15→14 场、册子 +1；toast 撤销后 14→15、册子回到原状。
+- 768（/tmp/wanflow-scene-768.png）：日签行「按天/按事件/按场景 + 重建」，`scrollHeight === innerHeight`，无纵向溢出。
+
+**已知 / 风险**：
+- 真实库仍是 emb 0/30、CLIP 模型未下载 → 0.82 / 90min / 6h 与三项验收指标都还没跑。
+- 部分照片有场景键、部分没有时，空键按 6h 事件间隔兜底；真实建索引过程中会短暂出现混合状态。
+- 精选册与成页方式解耦：册子记显影当时的页，切模式不丢；跨模式同样一批照片仍可能各记一次（既有小债）。
+- 演示 mock 的 `withEmb` 报满额，避免出现「15 场 + 159 张没有向量」的自相矛盾提示；真实后端不受影响。
+
+**回滚**：`git revert 2893e41`（纯前端 + 只读列；`scene_group` 列留在库里不影响旧代码）。
