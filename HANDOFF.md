@@ -401,3 +401,27 @@ sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
 - `embed_all` 嵌的是 **thumb**（480×320），不是原图；thumb 为空的行会被跳过。
 - 校准工具是集成测试，crate 名是 `wanflow_lib`；`smart`/`state` 是私有模块，别在 tests 里引用。
 - `scene::rebuild` 读的是 `COALESCE(time_overrides, base_time)`，时间修正会改变场景成员；重建要在时间修正之后跑。
+## 2026-11-05 · 发布 v0.1.0（首个公开版本）
+
+**做到哪**：本地安装替换为本版构建；打 tag、推 GitHub、建 Release 并上传 dmg；CI 绿。
+
+**构建**
+- `npm run tauri build`（release，缓存命中，约 2 分钟）：`WanFlow.app` 52.07 MiB、`WanFlow_0.1.0_aarch64.dmg` 16.97 MiB（17,794,627 B）。
+- `CFBundleShortVersionString = 0.1.0`、`CFBundleIdentifier = com.wanflow.app`、`lipo -archs = arm64`。
+- 签名状态：`codesign -dv` 显示 `adhoc, linker-signed`，无 Developer ID → 首次打开需右键「打开」或系统设置放行；未公证。
+
+**本地更新**
+- 旧版 `/Applications/WanFlow.app`（2026-11-04，52M）备份到 `/tmp/WanFlow-old-20261105-200508.app`，用 `ditto` 覆盖为新构建。
+- `open -a /Applications/WanFlow.app` 启动成功（PID 98513），`osascript ... quit` 干净退出。
+
+**发布**
+- 提交：b20a3f5 `chore: 发布 v0.1.0`（只含 CHANGELOG.md，+42；三处版本号本来都是 0.1.0，无需 bump）。
+- 标签：v0.1.0 → f88982c（annotated），已推送到 origin。
+- Release：https://github.com/sevenaaaaaaaaa/wanflow/releases/tag/v0.1.0 ，资产 `WanFlow_0.1.0_aarch64.dmg`（state=uploaded）。
+- dmg SHA256：`155882e56537d339c903310c2da83283bde92198695b7d7e64987569fe253c3b`。
+- CI：run 42024411353，16s，success。
+- 回滚口径：**不要删已发布的 tag**；有问题发 v0.1.1 修。本地退回旧版用上面备份 app（`ditto` 回去）。
+
+**发布文档**
+- 新增 `CHANGELOG.md`：按用户可感知的变化写导入/整理/挑图/智能/交付/隐私 + 已知限制。
+- 本文件所指 `docs/发布与更新.md` 的三处版本号规则本轮已验证；首次发版无需 bump。
