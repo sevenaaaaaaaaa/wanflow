@@ -14,6 +14,8 @@ const emit = defineEmits<{
 interface Day {
   key: string;
   ts: number;
+  /** 这一页最后一张的时间；按天成页时是当天最后一张，按事件成页时是这一段最后一张 */
+  endTs: number;
   items: MediaItem[];
 }
 
@@ -57,48 +59,83 @@ const banned = ref<Record<string, number[]>>({});
 interface Page {
   key: string;
   ts: number;
+  endTs: number;
   count: number;
   thumbs: string[];
 }
 const kept = ref<MediaItem[]>([]);
-// 只把「这一轮显影过的日子」收进精选册；保留名单本身从 kept 推导，撤销/重做才会同步
-const DAYS_KEY = "wanflow-developed-days";
-// 记「这一天显影了哪几张」。撤销后这几张不再是 keep，就当这页没显影过；重做后自动回来。
-const developedDays = ref<Record<string, number[]>>({});
+// 精选册记「显影时的那一页」，而不是记日期：keys 只是索引，
+// 日期与跨度随记录走，按天 / 按事件两种成页方式才能并存同一本册子。
+const PAGES_KEY = "wanflow-developed-pages";
+const LEGACY_DAYS_KEY = "wanflow-developed-days";
+interface DevelopedPage { ids: number[]; ts: number; endTs: number; mode: "day" | "event" }
+const developedPages = ref<Record<string, DevelopedPage>>({});
+function keyToTs(key: string) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
+  if (!m) return 0;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getTime() / 1000;
+}
 try {
-  const raw = localStorage.getItem(DAYS_KEY);
+  const raw = localStorage.getItem(PAGES_KEY);
   if (raw) {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      const migrated: Record<string, number[]> = {};
-      for (const key of parsed) migrated[String(key)] = [];
-      developedDays.value = migrated;
-    } else if (parsed && typeof parsed === "object") {
-      developedDays.value = parsed as Record<string, number[]>;
+    developedPages.value = JSON.parse(raw) as Record<string, DevelopedPage>;
+  } else {
+    // 旧格式：Record<dayKey, keptIds> 或 string[]；迁移成带日期跨度的记录
+    const legacy = localStorage.getItem(LEGACY_DAYS_KEY);
+    if (legacy) {
+      const parsed = JSON.parse(legacy);
+      const out: Record<string, DevelopedPage> = {};
+      if (Array.isArray(parsed)) {
+        for (const key of parsed) {
+          const ts = keyToTs(String(key));
+          out[String(key)] = { ids: [], ts, endTs: ts, mode: "day" };
+        }
+      } else if (parsed && typeof parsed === "object") {
+        for (const [key, ids] of Object.entries(parsed)) {
+          const ts = keyToTs(key);
+          out[key] = { ids: (ids as number[]) ?? [], ts, endTs: ts, mode: "day" };
+        }
+      }
+      developedPages.value = out;
     }
   }
 } catch { /* 本地存储不可用就不记忆 */ }
-function rememberDay(key: string, ids: number[]) {
-  developedDays.value = { ...developedDays.value, [key]: ids };
-  try { localStorage.setItem(DAYS_KEY, JSON.stringify(developedDays.value)); } catch { /* 忽略 */ }
+function rememberPage(page: Day, ids: number[]) {
+  const rec: DevelopedPage = { ids, ts: page.ts, endTs: page.endTs, mode: groupMode.value };
+  // 同一批照片只该在册子里出现一次：新页完整覆盖了旧页时，把旧页换掉
+  const sig = new Set(ids);
+  const next: Record<string, DevelopedPage> = {};
+  for (const [key, prev] of Object.entries(developedPages.value)) {
+    if (key === page.key) continue;
+    if (ids.length && prev.ids.length && prev.ids.every((id) => sig.has(id))) continue;
+    next[key] = prev;
+  }
+  next[page.key] = rec;
+  developedPages.value = next;
+  try { localStorage.setItem(PAGES_KEY, JSON.stringify(next)); } catch { /* 忽略 */ }
 }
 const developed = computed<Page[]>(() => {
-  const show = developedDays.value;
-  const map = new Map<string, MediaItem[]>();
-  for (const m of kept.value) {
-    const key = dayKey(m.effTime);
-    const list = map.get(key);
-    if (list) list.push(m);
-    else map.set(key, [m]);
-  }
+  const keptById = new Map(kept.value.map((m) => [m.id, m]));
   const out: Page[] = [];
-  for (const [key, list] of map) {
-    const ids = show[key];
-    if (!ids) continue;
-    // 有记录就要求当初显影的那几张现在仍是 keep；撤销后自然隐藏
-    if (ids.length && !ids.every((id) => list.some((m) => m.id === id))) continue;
+  for (const [key, rec] of Object.entries(developedPages.value)) {
+    let list: MediaItem[];
+    if (rec.ids.length) {
+      // 当初显影的那几张现在必须仍是 keep；撤销后自然隐藏，重做后自动回来
+      list = rec.ids.map((id) => keptById.get(id)).filter((m): m is MediaItem => !!m);
+      if (list.length !== rec.ids.length) continue;
+    } else {
+      // 更早的记录没存 ids：退回按天取这本册子里的 keep
+      list = kept.value.filter((m) => dayKey(m.effTime) === key);
+      if (!list.length) continue;
+    }
     list.sort((a, b) => a.effTime - b.effTime);
-    out.push({ key, ts: list[0].effTime, count: list.length, thumbs: list.slice(0, 4).map((m) => thumbUrl(m)) });
+    out.push({
+      key,
+      ts: rec.ts || list[0].effTime,
+      endTs: rec.endTs || list[list.length - 1].effTime,
+      count: list.length,
+      thumbs: list.slice(0, 4).map((m) => thumbUrl(m)),
+    });
   }
   out.sort((a, b) => b.ts - a.ts);
   return out;
@@ -118,22 +155,46 @@ function monthLabel(ts: number) {
   return p.y + " 年 " + p.m + " 月";
 }
 
-const days = computed<Day[]>(() => {
+// 成页方式：day = 日历天；event = 一次连续拍摄（间隔 > 6 小时就断，跨午夜接着拍算同一段）
+const GROUP_MODE_KEY = "wanflow-group-mode";
+const groupMode = ref<"day" | "event">("day");
+try { if (localStorage.getItem(GROUP_MODE_KEY) === "event") groupMode.value = "event"; } catch { /* 忽略 */ }
+const EVENT_GAP_SEC = 6 * 3600;
+
+function groupByDay(list: MediaItem[]): Day[] {
   const map = new Map<string, MediaItem[]>();
-  for (const m of items.value) {
+  for (const m of list) {
     const key = dayKey(m.effTime);
-    const list = map.get(key);
-    if (list) list.push(m);
+    const group = map.get(key);
+    if (group) group.push(m);
     else map.set(key, [m]);
   }
   const out: Day[] = [];
-  for (const [key, list] of map) {
-    list.sort((a, b) => a.effTime - b.effTime);
-    out.push({ key, ts: list[0].effTime, items: list });
+  for (const [key, group] of map) {
+    group.sort((a, b) => a.effTime - b.effTime);
+    out.push({ key, ts: group[0].effTime, endTs: group[group.length - 1].effTime, items: group });
   }
   out.sort((a, b) => b.ts - a.ts);
   return out;
-});
+}
+function groupByEvent(list: MediaItem[]): Day[] {
+  const sorted = [...list].sort((a, b) => a.effTime - b.effTime);
+  const out: Day[] = [];
+  let run: MediaItem[] = [];
+  const flush = () => {
+    if (!run.length) return;
+    out.push({ key: "evt-" + run[0].id, ts: run[0].effTime, endTs: run[run.length - 1].effTime, items: run });
+    run = [];
+  };
+  for (const m of sorted) {
+    if (run.length && m.effTime - run[run.length - 1].effTime > EVENT_GAP_SEC) flush();
+    run.push(m);
+  }
+  flush();
+  out.sort((a, b) => b.ts - a.ts);
+  return out;
+}
+const days = computed<Day[]>(() => (groupMode.value === "day" ? groupByDay(items.value) : groupByEvent(items.value)));
 
 const months = computed(() => {
   const out: { label: string; days: Day[] }[] = [];
@@ -148,6 +209,54 @@ const months = computed(() => {
 
 const active = computed<Day | null>(() => days.value[activeIdx.value] ?? null);
 const activeParts = computed(() => (active.value ? parts(active.value.ts) : null));
+
+const isEvent = computed(() => groupMode.value === "event");
+const groupUnit = computed(() => (isEvent.value ? "个事件" : "天"));
+const groupShort = computed(() => (isEvent.value ? "段" : "天"));
+const groupNoun = computed(() => (isEvent.value ? "这一段" : "这一天"));
+
+function timeOf(ts: number) {
+  const d = new Date(ts * 1000);
+  return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+}
+function sameCalDay(a: number, b: number) {
+  const x = new Date(a * 1000);
+  const y = new Date(b * 1000);
+  return x.getFullYear() === y.getFullYear() && x.getMonth() === y.getMonth() && x.getDate() === y.getDate();
+}
+function daySpan(a: number, b: number) {
+  const x = new Date(a * 1000);
+  const y = new Date(b * 1000);
+  const d1 = new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const d2 = new Date(y.getFullYear(), y.getMonth(), y.getDate()).getTime();
+  return Math.max(1, Math.round((d2 - d1) / 86400000) + 1);
+}
+// 事件页的副标题：同一天给时间弧，跨天给「M/D HH:MM → M/D HH:MM · N 天」
+const spanLine = computed(() => {
+  const a = active.value;
+  if (!a || !isEvent.value) return "";
+  if (sameCalDay(a.ts, a.endTs)) return timeOf(a.ts) + " – " + timeOf(a.endTs);
+  const s = parts(a.ts);
+  const e = parts(a.endTs);
+  return s.m + "/" + pad2(s.d) + " " + timeOf(a.ts) + " → " + e.m + "/" + pad2(e.d) + " " + timeOf(a.endTs) + " · " + daySpan(a.ts, a.endTs) + " 天";
+});
+function pageLabel(p: Page) {
+  const a = parts(p.ts);
+  const b = parts(p.endTs);
+  if (a.y === b.y && a.m === b.m && a.d === b.d) return a.m + " 月 " + a.d + " 日";
+  return a.m + "/" + pad2(a.d) + " – " + b.m + "/" + pad2(b.d);
+}
+function setGroupMode(mode: "day" | "event") {
+  if (mode === groupMode.value) return;
+  const anchor = active.value?.ts ?? 0;
+  groupMode.value = mode;
+  try { localStorage.setItem(GROUP_MODE_KEY, mode); } catch { /* 忽略 */ }
+  const list = days.value;
+  let i = list.findIndex((p) => anchor >= p.ts && anchor <= p.endTs);
+  if (i < 0) i = Math.min(activeIdx.value, list.length - 1);
+  activeIdx.value = Math.max(0, i);
+  if (mode === "event") emit("toast", "按拍摄间隔成页：超过 6 小时的间隔会断开，跨午夜连续拍会留在同一页");
+}
 
 function defaultBudget(n: number) {
   return Math.min(MAX_BUDGET, Math.max(1, Math.round(Math.sqrt(n))));
@@ -213,8 +322,12 @@ const burstGroups = computed(() => {
   return set.size;
 });
 const dateLine = computed(() => {
+  const a = active.value;
   const p = activeParts.value;
-  return p ? p.m + " 月 " + p.d + " 日 · " + p.w : "";
+  if (!a || !p) return "";
+  if (sameCalDay(a.ts, a.endTs)) return p.m + " 月 " + p.d + " 日 · " + p.w;
+  const e = parts(a.endTs);
+  return p.m + "/" + pad2(p.d) + " – " + e.m + "/" + pad2(e.d) + " · " + daySpan(a.ts, a.endTs) + " 天";
 });
 const folio = computed(() => developed.value.length + 1);
 
@@ -364,7 +477,7 @@ function go(delta: number) {
   const next = activeIdx.value + delta;
   if (next < 0) return;
   if (next > days.value.length - 1) {
-    emit("toast", "已经是最后一天了");
+    emit("toast", "已经是最后一页了");
     return;
   }
   activeIdx.value = next;
@@ -381,7 +494,7 @@ function jump(key: string) {
   if (same && tourOpen.value && tourStep.value === 0) nextTick(advanceTour);
 }
 function skipDay() {
-  if (activeIdx.value >= days.value.length - 1) emit("toast", "这是最后一天，显影后这一轮就收尾了");
+  if (activeIdx.value >= days.value.length - 1) emit("toast", "这是最后一页，显影后这一轮就收尾了");
   else activeIdx.value++;
 }
 const wait = (ms: number) => new Promise<void>((r) => window.setTimeout(r, ms));
@@ -493,7 +606,7 @@ async function develop() {
   flashing.value = true;
   try {
     await Promise.all([api.developPage(keepIds, restIds), wait(140)]);
-    rememberDay(day.key, keepIds);
+    rememberPage(day, keepIds);
     // 页面淡出后重读待挑 + 已保留（精选册由 kept 推导，撤销后自动回退）
     leaving.value = true;
     await wait(240);
@@ -592,7 +705,16 @@ defineExpose({ startTour });
       <aside class="timeline">
         <div class="tl-head">
           <span class="tl-kicker">待挑</span>
-          <span class="tl-count">{{ days.length }} 天</span>
+          <span class="tl-count">{{ days.length }} {{ groupUnit }}</span>
+        </div>
+        <div class="group-switch" role="group" aria-label="成页方式">
+          <button :class="{ on: groupMode === 'day' }" :aria-pressed="groupMode === 'day'" @click="setGroupMode('day')">按天</button>
+          <button
+            :class="{ on: groupMode === 'event' }"
+            :aria-pressed="groupMode === 'event'"
+            title="按拍摄间隔成页：超过 6 小时算新的一段，跨午夜连续拍摄留在同一段"
+            @click="setGroupMode('event')"
+          >按事件</button>
         </div>
         <div class="tl-scroll">
           <template v-for="mo in months" :key="mo.label">
@@ -606,7 +728,7 @@ defineExpose({ startTour });
             >
               <span class="tl-dot" :style="{ '--w': Math.min(1, d.items.length / 34) }"></span>
               <span class="tl-date">{{ parts(d.ts).m }}/{{ pad2(parts(d.ts).d) }}</span>
-              <span class="tl-week">{{ parts(d.ts).w }}</span>
+              <span class="tl-week">{{ isEvent ? timeOf(d.ts) : parts(d.ts).w }}</span>
               <span class="tl-n">{{ d.items.length }}</span>
             </button>
           </template>
@@ -616,13 +738,17 @@ defineExpose({ startTour });
         </div>
         <div class="tl-foot">
           <span class="tl-foot-k">已显影</span>
-          <span class="tl-foot-n"><b>{{ developed.length }}</b><i>/ {{ doneDays }} 天</i></span>
+          <span class="tl-foot-n"><b>{{ developed.length }}</b><i>/ {{ doneDays }} {{ groupShort }}</i></span>
         </div>
       </aside>
 
       <main class="stage">
         <!-- 窄屏换天：时间轴收成一条可横滑的「日签」，功能不消失 -->
-        <nav class="day-rail" aria-label="按天翻页">
+        <nav class="day-rail" aria-label="按页翻页">
+          <div class="rail-switch" role="group" aria-label="成页方式">
+            <button :class="{ on: groupMode === 'day' }" :aria-pressed="groupMode === 'day'" @click="setGroupMode('day')">按天</button>
+            <button :class="{ on: groupMode === 'event' }" :aria-pressed="groupMode === 'event'" @click="setGroupMode('event')">按事件</button>
+          </div>
           <button
             v-for="d in days"
             :key="d.key"
@@ -631,7 +757,7 @@ defineExpose({ startTour });
             @click="jump(d.key)"
           >
             <b>{{ parts(d.ts).m }}/{{ pad2(parts(d.ts).d) }}</b>
-            <span>{{ parts(d.ts).w }} · {{ d.items.length }}</span>
+            <span>{{ isEvent ? timeOf(d.ts) : parts(d.ts).w }} · {{ d.items.length }}</span>
           </button>
         </nav>
 
@@ -642,6 +768,7 @@ defineExpose({ startTour });
               <span class="day-sub">
                 <b class="day-month">{{ activeParts.m }} 月</b>
                 <span class="day-week">{{ activeParts.y }} · {{ activeParts.w }}</span>
+                <span v-if="isEvent" class="day-span">{{ spanLine }}</span>
               </span>
             </div>
             <div class="day-meta">
@@ -728,7 +855,7 @@ defineExpose({ startTour });
 
           <div class="strip-wrap">
             <div class="strip-head">
-              <span class="strip-title">这一天 · {{ active.items.length }} 张 <b class="strip-picked">已选 {{ chosen.length }}</b></span>
+              <span class="strip-title">{{ groupNoun }} · {{ active.items.length }} 张 <b class="strip-picked">已选 {{ chosen.length }}</b></span>
               <span class="strip-hint"><kbd>←</kbd><kbd>→</kbd> 张数 · 点照片加入 · 拖进页面 · <kbd>R</kbd> 重置</span>
             </div>
             <div class="strip" ref="stripEl" @wheel.prevent="onWheel">
@@ -779,7 +906,7 @@ defineExpose({ startTour });
               <img v-for="(t, j) in p.thumbs" :key="j" :src="t" alt="" draggable="false" />
             </div>
             <div class="mini-foot">
-              <span>{{ parts(p.ts).m }} 月 {{ parts(p.ts).d }} 日</span>
+              <span>{{ pageLabel(p) }}</span>
               <b>{{ p.count }} 张</b>
             </div>
           </div>
@@ -877,6 +1004,29 @@ defineExpose({ startTour });
   font-weight: 500;
 }
 .tl-count { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.group-switch {
+  display: flex;
+  gap: 2px;
+  margin: 9px 10px 7px;
+  padding: 2px;
+  border: 1px solid var(--border-1);
+  border-radius: 7px;
+  background: color-mix(in oklab, var(--bg-1) 55%, transparent);
+}
+.group-switch button {
+  flex: 1;
+  height: 22px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-4);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: .12em;
+  transition: background var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out);
+}
+.group-switch button:hover { color: var(--text-2); }
+.group-switch button.on { background: var(--accent-soft); color: var(--accent-ink); }
 .tl-scroll { flex: 1; overflow-y: auto; padding: 0 9px 12px; }
 .tl-month {
   position: sticky;
@@ -1037,6 +1187,15 @@ defineExpose({ startTour });
   font-size: 10px;
   letter-spacing: .14em;
   color: var(--text-3);
+}
+.day-span {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: .06em;
+  color: var(--accent-ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .day-meta {
   display: flex;
@@ -1814,6 +1973,32 @@ defineExpose({ startTour });
     scrollbar-width: none;
   }
   .day-rail::-webkit-scrollbar { display: none; }
+  .rail-switch {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    flex: none;
+    display: flex;
+    gap: 2px;
+    align-self: center;
+    height: 40px;
+    padding: 3px;
+    margin-right: 2px;
+    border: 1px solid var(--border-1);
+    border-radius: 6px;
+    background: var(--bg-0);
+  }
+  .rail-switch button {
+    padding: 0 9px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-4);
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: .1em;
+  }
+  .rail-switch button.on { background: var(--accent-soft); color: var(--accent-ink); }
   .rail-day {
     flex: none;
     display: flex;
@@ -1843,7 +2028,8 @@ defineExpose({ startTour });
   }
   .rail-day.on span { color: var(--accent-ink, var(--accent)); }
   .stage { padding: 16px 18px 12px; }
-  .spread { width: 100%; min-width: 0; }
+  /* 窄屏少了左栏，但顶栏 + 日签 + compose + 胶片条占得更多：按剩余高度定纸宽 */
+  .spread { width: min(100%, calc((100vh - 440px) * 1.3333)); min-width: 0; }
   .compose-count { min-width: 0; }
   .cc-sub { display: none; }
   .strip-hint { display: none; }

@@ -167,14 +167,25 @@ const PLANS: DayPlan[] = [
 let idSeq = 1;
 const items: MediaItem[] = [];
 
+// 有些日子拍了两场（上午出门 + 傍晚在家），用来验证「按事件成页」能断开
+const SPLIT_DAYS = new Set([1, 10]);
+// 还有一晚拍到过了午夜：按天会被拆成两行，按事件仍是一段
+const NIGHT_DAY = 5;
+
 for (const plan of PLANS) {
   const base = new Date();
-  base.setHours(18, 40, 0, 0);
+  const night = plan.ago === NIGHT_DAY;
+  base.setHours(night ? 23 : 18, night ? 20 : 40, 0, 0);
   base.setDate(base.getDate() - plan.ago);
+  const splitAt = SPLIT_DAYS.has(plan.ago) ? Math.floor(plan.count * 0.55) : -1;
   let burst: number | null = null;
   let burstLeft = 0;
   for (let i = 0; i < plan.count; i++) {
-    const t = Math.floor(base.getTime() / 1000) - i * 90 - (i % 3) * 40;
+    const t = night
+      ? Math.floor(base.getTime() / 1000) + i * 480
+      : i >= splitAt && splitAt > 0
+        ? Math.floor(base.getTime() / 1000) - 9 * 3600 - (i - splitAt) * 70
+        : Math.floor(base.getTime() / 1000) - i * 90 - (i % 3) * 40;
     if (burstLeft === 0 && i > 2 && (i + plan.ago) % 6 === 0) {
       burst = 500 + idSeq;
       burstLeft = 2 + ((i + plan.ago) % 3);
