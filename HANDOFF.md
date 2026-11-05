@@ -360,3 +360,44 @@ cd /Users/seveno/WanFlow && npm run build          # ✓ exit 0，53 modules，c
 - 演示 mock 的 `withEmb` 报满额，避免出现「15 场 + 159 张没有向量」的自相矛盾提示；真实后端不受影响。
 
 **回滚**：`git revert 2893e41`（纯前端 + 只读列；`scene_group` 列留在库里不影响旧代码）。
+## 2026-11-05 · 真实库建索引 + 场景阈值校准（第 2/3 步）
+
+**做到哪**：真实库跑通 CLIP 嵌入与场景重建；新增可重跑的校准工具；阈值暂维持默认值，等真实家庭照片定稿。
+
+**第 2 步：真实库端到端（数据层）**
+- 模型已下载到 `~/Library/Caches/com.wanflow.app/models`：`clip-vit-b32-q8.onnx` 153,695,702 B、`clip-vit-b32-tokenizer.json` 2,224,119 B（hf-mirror 源，脚本 `/tmp/dl-clip.sh`，下载 job 退出码 0）。
+- 用临时集成测试（已删）直接调 `clip::Clip::load` + `scene::rebuild`，绕过需要 AppState 的 Tauri 命令：30 张 thumb（480×320）逐张嵌入 → 写 `media.emb / emb_model` → `rebuild`。
+- 结果：`emb` 30/30、维度 512、范数 1.0000、单张 26–55 ms；`rebuild#1 changed=30`、`rebuild#2 changed=0`（幂等）；`scene_group` 30 个不同值。
+- 真实库 30 张全是彼此无关的风景/动物/静物照（fjord、鹰、咖啡、狮子、草莓、海象、东京夜景…），**没有同场景多拍，也没有人脸**；所以「30 场 = 30 张」是正确的，不是聚类失效。
+- `npm run tauri dev` 启动成功（PID 93491，窗口存在）；macOS `screencapture` 被录屏权限拦住，无法自动截图，UI 证据仍来自浏览器演示库。DB 三列为 30/30/30，UI 读同一列，路径已通。
+
+**第 3 步：校准工具 + 现有数据能测到的结论**
+- 新增 `src-tauri/tests/scene_calibration.rs`（`#[ignore]`，不进 CI）：读 `WF_CALIB_DIR` 下图片与可选 `labels.csv`（`file,scene[,ts]`），嵌入后按 `min_sim × max_gap` 网格输出「场景数 / 误并簇 / 拆分率 / 纯度」。
+  ```bash
+  WF_CALIB_DIR=/tmp/wf-calib-30 cargo test --test scene_calibration -- --ignored --nocapture
+  ```
+- 用真实库 30 张（每张独立场景，labels 自成一类）跑：0.76–0.86 全部 30 场、误并 0、纯度 100%；0.72 时出现 1 个误并簇（28 场、纯度 93.3%）。
+- 代理变体实验（同一张真实照片做 60–70% 裁切/45–55% 裁切+2° 旋转/模糊，模拟另一台设备的构图；临时测试，已删）：
+  - 同源相似度 n=90：min 0.632 / p10 0.804 / 中位 0.916 / max 0.981；
+  - 异源相似度 n=435：p50 0.564 / p90 0.673 / p99 0.752 / **max 0.782**；
+  - 4 张一场的合成时间线扫描：0.78 → 92.2%、0.80 → 90.0%、**0.82 → 85.6%**、0.84 → 77.8%，0.78–0.86 误并均为 0。
+- **结论/取舍**：默认 `0.82 / 90min / 6h` 暂不改。0.82 是「代理数据上仍 ≥80% 合并率」的最高阈值（0.84 掉到 77.8%），且高于异源 max 0.782；降到 0.78 虽到 92%，但离异源上限太近，真实家庭照片（同人同景）误并风险更大。真正的定稿必须等真实同场景样本。
+
+**没解决 / 需要用户**
+- 三项验收里「跨设备同场景合并 ≥80%」无法用当前库测（无同场景多拍）；「异场景误并 ≤10%」「单日场景数与人工差 ≤20%」在 30 张上均为 0，但样本是库存照片，代表性有限。
+- 下一步需要：一个含「同场景多拍 / 跨设备同一天」的真实家庭照片目录（3–5 天即可），或授权读 Photos 图库导出样本。
+
+**验证**：
+```bash
+cd /Users/seveno/WanFlow/src-tauri && cargo test   # ✓ 53 passed；scene_calibration 1 ignored
+cd /Users/seveno/WanFlow && npm run build          # ✓ exit 0，53 modules，css 69.08 kB / js 189.81 kB，665ms
+sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
+  "select count(*), count(emb), count(scene_group), count(distinct scene_group) from media;"  # 30|30|30|30
+```
+
+**回滚**：`git revert 21f4bb9`（只删校准工具）；数据库里的 `emb / scene_group` 是派生数据，可随时重建，不需要回滚。
+
+**别踩**：
+- `embed_all` 嵌的是 **thumb**（480×320），不是原图；thumb 为空的行会被跳过。
+- 校准工具是集成测试，crate 名是 `wanflow_lib`；`smart`/`state` 是私有模块，别在 tests 里引用。
+- `scene::rebuild` 读的是 `COALESCE(time_overrides, base_time)`，时间修正会改变场景成员；重建要在时间修正之后跑。
