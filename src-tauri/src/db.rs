@@ -120,6 +120,7 @@ fn ensure_columns(conn: &Connection) -> Result<(), rusqlite::Error> {
         ("source_id", "ALTER TABLE media ADD COLUMN source_id INTEGER"),
         ("emb", "ALTER TABLE media ADD COLUMN emb BLOB"),
         ("emb_model", "ALTER TABLE media ADD COLUMN emb_model TEXT"),
+        ("scene_group", "ALTER TABLE media ADD COLUMN scene_group INTEGER"),
     ];
     for (name, sql) in alters {
         if !cols.contains(*name) {
@@ -132,6 +133,10 @@ fn ensure_columns(conn: &Connection) -> Result<(), rusqlite::Error> {
     )?;
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_media_emb ON media(emb_model)",
+        [],
+    )?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_media_scene ON media(scene_group)",
         [],
     )?;
     Ok(())

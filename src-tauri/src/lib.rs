@@ -5,6 +5,7 @@ pub mod db;
 pub mod export;
 pub mod phash;
 mod quality;
+pub mod scene;
 pub mod scanner;
 mod smart;
 mod state;
@@ -60,6 +61,7 @@ pub fn run() {
             smart::clip_status,
             smart::clip_download,
             smart::embed_all,
+            scene::rebuild_scenes,
             smart::semantic_search,
             smart::smart_select,
             smart::list_albums,
