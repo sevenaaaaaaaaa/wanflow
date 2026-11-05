@@ -159,7 +159,23 @@ function monthLabel(ts: number) {
 const GROUP_MODE_KEY = "wanflow-group-mode";
 const groupMode = ref<"day" | "event">("day");
 try { if (localStorage.getItem(GROUP_MODE_KEY) === "event") groupMode.value = "event"; } catch { /* 忽略 */ }
-const EVENT_GAP_SEC = 6 * 3600;
+const EVENT_GAP_MAX = 6 * 3600; // 超过这个间隔一定断开
+const EVENT_GAP_MIN = 2 * 3600; // 低于这个间隔一定并在一起
+// 文件名前缀当「设备 / 导出应用」的粗线索：IMG_ 是相机，PXL_ 是安卓，Screenshot_ 是截屏
+function filePrefix(name: string) {
+  const base = name.replace(/\.[^.]+$/, "");
+  const m = /^[A-Za-z_]+/.exec(base);
+  return (m ? m[0] : base).toLowerCase();
+}
+// 2–6 小时是「说不准」的地带：同一台设备就并，换了设备就当新的一段。
+// 连拍组永远不拆（同一组照片的时间跨度不构成新事件）。
+function isSessionBreak(prev: MediaItem, next: MediaItem) {
+  if (prev.burstGroup !== null && prev.burstGroup === next.burstGroup) return false;
+  const gap = next.effTime - prev.effTime;
+  if (gap > EVENT_GAP_MAX) return true;
+  if (gap <= EVENT_GAP_MIN) return false;
+  return filePrefix(prev.filename) !== filePrefix(next.filename);
+}
 
 function groupByDay(list: MediaItem[]): Day[] {
   const map = new Map<string, MediaItem[]>();
@@ -187,7 +203,7 @@ function groupByEvent(list: MediaItem[]): Day[] {
     run = [];
   };
   for (const m of sorted) {
-    if (run.length && m.effTime - run[run.length - 1].effTime > EVENT_GAP_SEC) flush();
+    if (run.length && isSessionBreak(run[run.length - 1], m)) flush();
     run.push(m);
   }
   flush();
@@ -255,7 +271,7 @@ function setGroupMode(mode: "day" | "event") {
   let i = list.findIndex((p) => anchor >= p.ts && anchor <= p.endTs);
   if (i < 0) i = Math.min(activeIdx.value, list.length - 1);
   activeIdx.value = Math.max(0, i);
-  if (mode === "event") emit("toast", "按拍摄间隔成页：超过 6 小时的间隔会断开，跨午夜连续拍会留在同一页");
+  if (mode === "event") emit("toast", "按拍摄间隔成页：超过 6 小时断开；2–6 小时间换了设备也断开；跨午夜连续拍仍算一段");
 }
 
 function defaultBudget(n: number) {
@@ -712,7 +728,7 @@ defineExpose({ startTour });
           <button
             :class="{ on: groupMode === 'event' }"
             :aria-pressed="groupMode === 'event'"
-            title="按拍摄间隔成页：超过 6 小时算新的一段，跨午夜连续拍摄留在同一段"
+            title="按拍摄间隔成页：超过 6 小时算新的一段；2–6 小时间换了拍摄设备也断开；跨午夜连续拍摄留在同一段"
             @click="setGroupMode('event')"
           >按事件</button>
         </div>
