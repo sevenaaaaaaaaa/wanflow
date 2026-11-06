@@ -4,6 +4,9 @@ import Icon from "./Icon.vue";
 
 const emit = defineEmits<{ pick: [kind: "folder" | "photos"] }>();
 
+// 版本号来自 package.json（vite define），发版不再需要手改界面
+const version = __APP_VERSION__;
+
 const budget = ref(4);
 const shot = ref(false);
 
@@ -20,7 +23,7 @@ function reset() {
   <div class="empty">
     <header class="empty-head">
       <span class="brand">Wan<em>Flow</em></span>
-      <span class="ver">v0.1 · 本地优先</span>
+      <span class="ver">v{{ version }} · 本地优先</span>
     </header>
 
     <div class="hero">
