@@ -488,3 +488,35 @@ sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
 - `--on-accent` 是深青黑（不是白）：青底上放白字只有 3.8:1，不达标。
 - 浅色 `--border-1` 特意压到 `#dcdcd2`（设计系统给的是 `#EDEEEF`，在 `#f5f5f0` 上几乎看不见）。
 - 浅色下胶片条缩略图 `opacity: .58` 会比深色更淡；真实照片若觉得糊，调 `.frame` 的 opacity 而不是加投影。
+
+## 2026-11-07 · 发版 v0.2.0（浅色默认 + 新视觉）
+
+**做到哪**：浅色设为默认 → 升 0.2.0 → 构建 → 打 tag 推送 → GitHub Release 上传 dmg → 本机 `/Applications/WanFlow.app` 替换并启动验证。
+
+**代码改动**
+- `index.html` 首帧定主题的内联脚本：读 `wanflow-theme`，没记录就写 `light`，避免启动时先闪深色。
+- `src/App.vue`：`theme` 初值 `dark → light`。
+- 版本三处同步 0.2.0：`package.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml`；构建后 `Cargo.lock` 里 wanflow 版本随之更新（另有 chore 提交）。
+- `CHANGELOG.md` 新增 v0.2.0 段（视觉、默认浅色、两处修复、已知限制照抄）。
+
+**构建**
+- `npm run tauri build`：Rust release 23.81s（缓存命中），bundle 阶段约 40s。
+- `WanFlow.app` 52.07 MiB；`WanFlow_0.2.0_aarch64.dmg` 16.97 MiB（17,794,774 B）。
+- `CFBundleShortVersionString = 0.2.0`、`CFBundleIdentifier = com.wanflow.app`、`lipo -archs = arm64`。
+- 签名：`adhoc, linker-signed`，无 Developer ID → 首次打开仍需右键「打开」；未公证。
+- dmg SHA256：`91320c7ddeede34367f746bcc811ae21cfbdc0afb2becabeeb44fbd4e207d218`。
+
+**发布**
+- 提交：`80a7bc6` feat（浅色默认 + 0.2.0）、`03d1788` chore（Cargo.lock）；已推送 main（`471ea01..03d1788`）。
+- 标签：v0.2.0（annotated）→ `03d1788`，已推送到 origin。
+- Release：https://github.com/sevenaaaaaaaaa/wanflow/releases/tag/v0.2.0 ，资产 `WanFlow_0.2.0_aarch64.dmg`（state=uploaded）。
+
+**本机更新**
+- 旧版 `/Applications/WanFlow.app`（0.1.0）移动到 `/tmp/WanFlow-old-20261107-000758.app`（用 mv 不用 rm，回退直接 mv 回去）。
+- `ditto` 覆盖安装；`open -a` 启动，PID 76041，14s 后仍在（RSS ~109 MB），未崩溃。
+- 回退：`osascript -e 'tell application "WanFlow" to quit'` → `mv /Applications/WanFlow.app /tmp/WanFlow-0.2.0-bad.app` → `mv /tmp/WanFlow-old-20261107-000758.app /Applications/WanFlow.app`。
+
+**别踩**
+- 发版前必须确认 `dist/` 已含 `index.html` 的内联主题脚本（`grep wanflow-theme dist/index.html`），否则装出来的包还是会闪深色。
+- `defaults read <app>/Contents/Info.plist CFBundleShortVersionString` 是判断装成功没的唯一口径，别凭 App 名字猜。
+- tag 不要删；有问题发 v0.2.1。
