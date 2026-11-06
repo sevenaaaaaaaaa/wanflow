@@ -457,3 +457,34 @@ sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
 - `--glass-strong` 现在是**不透明**的：任何依赖它做半透明背景的新组件都会变成实心块。
 - 最小字号抬到 11px 后，窄屏（<760px）胶片条与时间轴更挤；真实数据下要复看 `f-no` / `f-badge` / `gt-state` 会不会撞。
 - 相纸投影去掉后，深色背景下白纸与照片的分界只靠 0.5px `--paper-edge`；若真机上觉得「飘」，优先加一圈 `--border-1` 而不是恢复投影。
+
+## 2026-11-06 · 接入 ui-ux-pro-max 设计系统（Organic Biophilic · calm teal）
+
+**起因**：用户指定用 `/skills/ui-ux-pro-max` 这个设计。上一轮的「去装饰」只解决干净问题，没有色彩与字体方向。
+
+**怎么定的**
+- 跑 `search.py "photo library organizer family memories warm editorial calm" --design-system --persist -p WanFlow --output-dir <repo>`，产出 style = Organic Biophilic、色板 = sage neutral + calm teal（#6B7280 / #0891B2 / #F5F5F0）、字体 = Lora + Raleway。
+- 自动分类把项目误判成 wellness/yoga，且版式给的是 landing page 结构。**色板与气质采纳，版式与「有机曲线」不采纳**，并按桌面工具收敛：圆角 10/12/16/20、动效保持现有五档。
+- 交叉查了 `--domain color "photography neutral warm"`（结果偏纯黑白暗房）与 `--domain typography`（结果偏全衬线）；最终保留「衬线标题 + 无衬线正文 + 等宽元数据」三层，避免把工具做成杂志阅读器。
+- 落盘 `design-system/wanflow/MASTER.md`（含 WanFlow Adaptations：类别修正、token 映射、对比度实测、未落地项）。
+
+**改了什么**（`src/tokens.css` 全量重写 + 三处组件微调）
+- 深色：`--bg-0 #0c0e0e` / `--surface-1 #161a19` / 文字 `#f1f4f1…#8b948d`；强调 `#22b8d3`，`--on-accent #04212a`。
+- 浅色：暖纸底 `#f5f5f0`、纯白卡面、墨 `#0f172a`；强调 `#0891b2`，`--accent-ink #0e7490`。
+- 圆角档位 4/10/12/16/20/pill；新增间距阶梯 `--sp-1..8`；新增两级投影 `--shadow-1/2`。
+- 投影只给浮层：`.modal` / `.palette` / `.undo-toast` / `.dup-panel` / `.lb-nav` / `.dock` / `.spread`（相纸）/ `.tour-card`。列表与卡片继续 0.5px 发丝。
+- 旧绿底硬编码清掉：`.cellbtn`、`.cell .state`、`.cell .tag`、`.cell .score`、三处遮罩、引导卡按钮、`EmptyState` 的 var 兜底，全部改中性或青。
+- 字体栈补 `Raleway` / `Lora` 打头：本机没装就落到原有系统字体，**不联网取字体**（本地优先产品）。
+
+**验证**
+- `npm run build` 通过（CSS 63.76 kB / gzip 12.16 kB）。
+- 对比度实测（AA 普通文字 ≥4.5）：深色 `--text-4` 6.19、`--text-2` 11.06、`on-accent/accent` 7.06；浅色 `--text-4` 4.60、`--text-3` 7.58、`accent-ink/white` 5.36、`on-accent/accent` 4.54。
+- 截图四张存 `docs/shots/design-*.jpg`：深色故事线、深色网格、浅色故事线、浅色空状态（浅色是临时改 `theme` 初值 + 关掉引导拍的，文件已还原）。
+
+**回滚**：本提交是纯 token + 配色替换；`git revert <sha>` 即回到 52ac1c5 的扁平灰绿版。
+
+**别踩**
+- 强调色换青后，再写 `oklch(from var(--accent) …)` 仍然有效，但**不要再写死 150°/145° 的绿 hue**，深色下会显脏。
+- `--on-accent` 是深青黑（不是白）：青底上放白字只有 3.8:1，不达标。
+- 浅色 `--border-1` 特意压到 `#dcdcd2`（设计系统给的是 `#EDEEEF`，在 `#f5f5f0` 上几乎看不见）。
+- 浅色下胶片条缩略图 `opacity: .58` 会比深色更淡；真实照片若觉得糊，调 `.frame` 的 opacity 而不是加投影。
