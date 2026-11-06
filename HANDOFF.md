@@ -520,3 +520,31 @@ sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
 - 发版前必须确认 `dist/` 已含 `index.html` 的内联主题脚本（`grep wanflow-theme dist/index.html`），否则装出来的包还是会闪深色。
 - `defaults read <app>/Contents/Info.plist CFBundleShortVersionString` 是判断装成功没的唯一口径，别凭 App 名字猜。
 - tag 不要删；有问题发 v0.2.1。
+
+## 2026-11-07 · 补发 v0.2.1（版本号跟随安装包）
+
+**为什么补发**：0.2.0 装好后发现欢迎页右上角仍显示 `v0.1` —— 那串是一年前写死的字面量，不跟版本号走。tag 不删，改发 0.2.1。
+
+**改了什么**
+- `vite.config.ts` 增加 `define: { __APP_VERSION__: JSON.stringify(pkg.version) }`（读 package.json）。
+- 新增 `src/env.d.ts` 声明 `__APP_VERSION__`。
+- `EmptyState.vue` 版本号改渲染 `v{{ version }}`，`const version = __APP_VERSION__`。
+- 版本三处同步 0.2.1；CHANGELOG 补 v0.2.1 一条。
+
+**验证**
+- `npm run build` 通过；dev 页面截图确认显示 `v0.2.1`（`docs/shots/` 未另存，见 /tmp/wf-ver.png）。
+- `npm run tauri build`：app 52.07 MiB、dmg 16.97 MiB（17,794,673 B）；`CFBundleShortVersionString = 0.2.1`。
+- dmg SHA256：`c86095f88fe8e6185dabacd3b460829572d22a521178fdb1eaa4514974e107da`。
+
+**发布**
+- 提交 `c7997b7`（fix + 0.2.1）、`1ee03e7`（Cargo.lock）；已推 main（`38194f0..1ee03e7`）。
+- 标签 v0.2.1 → `1ee03e7`，已推送。
+- Release：https://github.com/sevenaaaaaaaaa/wanflow/releases/tag/v0.2.1 ，资产 `WanFlow_0.2.1_aarch64.dmg`（uploaded）。
+
+**本机更新**
+- 0.2.0 移动到 `/tmp/WanFlow-0.2.0-20261107-001123.app`；`ditto` 装 0.2.1；`open -a` 启动 PID 77749，15s 后仍在（RSS ~111 MB）。
+- 回退：quit → `mv /Applications/WanFlow.app /tmp/WanFlow-0.2.1-bad.app` → `mv /tmp/WanFlow-0.2.0-20261107-001123.app /Applications/WanFlow.app`。
+
+**别踩**
+- 以后再改版本号：**只改 package.json + tauri.conf.json + Cargo.toml 三处**，界面会自己跟上（0.2.0 前不是这样）。
+- `src/env.d.ts` 不能删，删了 `__APP_VERSION__` 会变成未声明全局。
