@@ -192,7 +192,7 @@ defineExpose({ refreshSources, fail });
   align-items: center;
   gap: 10px;
   padding: 9px 6px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 0.5px solid var(--line);
   font-size: 13px;
 }
 </style>

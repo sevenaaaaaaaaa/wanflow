@@ -89,7 +89,7 @@ async function resolve(apply: boolean) {
       </div>
       <p v-if="items.length === 0" class="hint">暂无建议——先跑一次"质量分析"</p>
     </div>
-    <div style="padding: 10px 14px; border-top: 1px solid var(--line); display: flex; gap: 8px; align-items: center">
+    <div style="padding: 10px 14px; border-top: 0.5px solid var(--line); display: flex; gap: 8px; align-items: center">
       <button class="primary" :disabled="checked.size === 0" @click="resolve(true)">
         应用选中的 {{ checked.size }} 条
       </button>

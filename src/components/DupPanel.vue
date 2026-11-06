@@ -64,7 +64,7 @@ async function keepOne(id: number) {
         <button class="primary" style="padding: 5px 10px" @click="keepOne(m.id)">只留这张</button>
       </div>
     </div>
-    <div style="padding: 10px 14px; border-top: 1px solid var(--line); display: flex; gap: 8px">
+    <div style="padding: 10px 14px; border-top: 0.5px solid var(--line); display: flex; gap: 8px">
       <button class="primary" :disabled="picked.size === 0" @click="decide('keep')">选中保留</button>
       <button :disabled="picked.size === 0" style="color: #fca5a5" @click="decide('reject')">选中淘汰</button>
       <span class="spacer"></span>
