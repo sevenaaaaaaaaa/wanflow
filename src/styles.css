@@ -273,7 +273,7 @@ kbd {
   box-shadow: inset 0 0 0 .5px oklch(100% 0 0 / .07);
   pointer-events: none;
 }
-[data-theme="light"] .cell::after { box-shadow: inset 0 0 0 .5px oklch(30% .02 130 / .08); }
+[data-theme="light"] .cell::after { box-shadow: inset 0 0 0 .5px rgb(15 23 42 / .08); }
 .cell img { width: 100%; height: 100%; object-fit: cover; display: block; background: var(--thumb-bg); }
 
 /* 悬停时出现的快捷动作：留 / 弃 / 星 */
@@ -290,7 +290,7 @@ kbd {
   width: 26px; height: 26px;
   display: grid; place-items: center;
   border: none; border-radius: var(--r-sm);
-  background: oklch(20% .01 150 / .92);
+  background: rgb(12 14 14 / .92);
   color: var(--text-1);
   transition: background var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
 }
@@ -308,8 +308,8 @@ kbd {
   border-radius: var(--r-pill);
   font: 500 var(--fs-1)/1 var(--font-body);
   letter-spacing: .01em;
-  background: oklch(18% .012 150 / .86);
-  color: oklch(98% .003 130);
+  background: rgb(12 14 14 / .90);
+  color: #f4f6f4;
   border: 0.5px solid oklch(100% 0 0 / .14);
 }
 .cell .state::before {
@@ -331,8 +331,8 @@ kbd {
   display: inline-flex; align-items: center; height: 18px; padding: 0 6px;
   border-radius: var(--r-pill);
   font: 500 11px/1 var(--font-mono); letter-spacing: .02em;
-  background: oklch(14% .01 150 / .5);
-  color: oklch(92% .006 130 / .82);
+  background: rgb(12 14 14 / .88);
+  color: rgb(244 246 244 / .92);
   border: 0.5px solid oklch(100% 0 0 / .12);
   transition: color var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out);
 }
@@ -343,7 +343,7 @@ kbd {
   position: absolute; right: 9px; bottom: 8px;
   font: 500 11px/1 var(--font-mono);
   font-variant-numeric: tabular-nums;
-  color: oklch(94% .006 130 / .8);
+  color: rgb(246 248 246 / .92);
 }
 .cell .score.good { color: oklch(from var(--ok) calc(l + .08) c h / .92); }
 .cell .score.mid { color: oklch(from var(--warn) l c h / .88); }
@@ -375,6 +375,7 @@ kbd {
   border-radius: var(--r-lg);
   background: var(--glass-strong);
   border: 0.5px solid var(--glass-border);
+  box-shadow: var(--shadow-1);
   z-index: var(--z-dock);
 }
 .dock .stats { display: flex; gap: 12px; align-items: center; color: var(--text-3); font-size: var(--fs-2); }
@@ -408,13 +409,14 @@ kbd {
 /* ── 命令面板 ───────────────────────────────────────────── */
 .palette-mask {
   position: fixed; inset: 0;
-  background: oklch(10% .01 150 / .72);
+  background: rgb(8 10 10 / .66);
   display: flex; justify-content: center; align-items: flex-start;
   padding-top: 14vh;
   z-index: var(--z-overlay);
   animation: fade var(--dur-2) var(--ease-out);
 }
 .palette {
+  box-shadow: var(--shadow-2);
   width: min(620px, 92vw);
   max-height: 64vh;
   display: flex; flex-direction: column;
@@ -454,7 +456,7 @@ kbd {
 /* ── 灯箱 ───────────────────────────────────────────────── */
 .lightbox {
   position: fixed; inset: 0;
-  background: oklch(12% .01 150 / .97);
+  background: rgb(8 10 10 / .97);
   display: flex; flex-direction: column;
   z-index: var(--z-overlay);
   animation: fade var(--dur-2) var(--ease-out);
@@ -468,6 +470,7 @@ kbd {
 }
 @keyframes pop { from { opacity: 0; transform: scale(.96); } }
 .lb-nav {
+  box-shadow: var(--shadow-1);
   position: absolute; top: 50%; transform: translateY(-50%);
   width: 40px; height: 40px;
   display: grid; place-items: center;
@@ -513,6 +516,7 @@ kbd {
 
 /* ── Toast ──────────────────────────────────────────────── */
 .undo-toast {
+  box-shadow: var(--shadow-1);
   position: fixed; bottom: calc(var(--dock-h) + 16px); left: 50%;
   transform: translateX(-50%);
   display: flex; align-items: center; gap: 14px;
@@ -533,12 +537,13 @@ kbd {
 /* ── 弹窗 / 抽屉 ────────────────────────────────────────── */
 .modal-mask {
   position: fixed; inset: 0;
-  background: oklch(10% .01 150 / .72);
+  background: rgb(8 10 10 / .66);
   display: flex; align-items: center; justify-content: center;
   z-index: var(--z-overlay);
   animation: fade var(--dur-2) var(--ease-out);
 }
 .modal {
+  box-shadow: var(--shadow-2);
   width: min(860px, 92vw);
   max-height: 84vh;
   display: flex; flex-direction: column;
@@ -568,6 +573,7 @@ kbd {
 .form-row label { color: var(--text-3); min-width: 90px; }
 
 .dup-panel {
+  box-shadow: var(--shadow-2);
   position: fixed; right: 0; top: 0; bottom: 0;
   width: 380px;
   display: flex; flex-direction: column;

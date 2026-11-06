@@ -320,8 +320,8 @@ h1 em {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--accent-soft, oklch(92% .05 150));
-  color: var(--accent-ink, oklch(38% .1 150));
+  background: var(--accent-soft, rgb(8 145 178 / .14));
+  color: var(--accent-ink, #0e7490);
 }
 .shot b { font-size: 17px; font-weight: 500; letter-spacing: -.01em; color: oklch(30% .012 85); }
 .shot .stamp span { font-size: 11px; color: oklch(46% .012 85); }

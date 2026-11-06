@@ -1,86 +1,94 @@
 /* ─────────────────────────────────────────────────────────────
  * WanFlow · tokens.css
- * 设计语言借自 Litmus（绿纸 / 绿石墨）：oklch 原语、表面五级、
- * 文字四级、强调单色、语义四色、圆角五档、动效五档。
+ * 设计系统：Organic Biophilic（sage neutral + calm teal）
+ *   → 来源 design-system/wanflow/MASTER.md（ui-ux-pro-max 生成）
+ *   → 桌面端改造：动效与有机曲线降级，强调「安静、纸感、克制」
  * 唯一契约：组件里只用 var(--…)，不写裸 hex / 裸 px 字号。
  * ───────────────────────────────────────────────────────────── */
 
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
-  /* 表面五级：绿石墨，相邻步距 ≥1.08:1 */
-  --bg-0: oklch(19% .008 150);
-  --bg-1: oklch(22.8% .008 150);
-  --surface-1: oklch(26.6% .009 150);
-  --surface-2: oklch(30.4% .009 150);
-  --surface-3: oklch(34.2% .010 150);
-  /* 文字四级 */
-  --text-1: oklch(94% .006 130);
-  --text-2: oklch(80% .006 130);
-  --text-3: oklch(73% .006 130);
-  /* 最小字（10–11px 标签）也要过 4.5:1，faint 不再等于看不清 */
-  --text-4: oklch(67% .006 130);
-  /* 分隔 / 悬停 / 选中：从墨派生 */
-  --border-1: oklch(from var(--text-1) l c h / .08);
-  --border-2: oklch(from var(--text-1) l c h / .18);
-  --hover: oklch(from var(--text-1) l c h / .06);
-  --hover-strong: oklch(from var(--text-1) l c h / .11);
-  --selected: oklch(from var(--accent) l c h / .09);
-  /* 强调：单一叶绿；-ink 用于 soft 底上的文字 */
-  --accent: oklch(76% .17 145);
-  --accent-strong: oklch(83% .14 145);
-  --accent-soft: oklch(from var(--accent) l c h / .16);
-  --accent-ink: oklch(from var(--accent) calc(l + .07) c h);
-  --on-accent: oklch(18% .04 145);
-  /* 语义四色：fill / ink / soft */
-  --ok: oklch(78% .14 160);   --ok-soft: oklch(from var(--ok) l c h / .16);   --ok-ink: oklch(from var(--ok) calc(l + .06) c h);
-  --warn: oklch(80% .12 75);  --warn-soft: oklch(from var(--warn) l c h / .16); --warn-ink: oklch(from var(--warn) calc(l + .05) c h);
-  --danger: oklch(76% .15 29); --danger-soft: oklch(from var(--danger) l c h / .16); --danger-ink: oklch(from var(--danger) calc(l + .09) calc(c * .8) h);
-  --info: oklch(78% .11 220); --info-soft: oklch(from var(--info) l c h / .16); --info-ink: oklch(from var(--info) calc(l + .07) c h);
-  /* 浮层一律不透明、不发虚：只用表面色 + 0.5px 发丝，不用玻璃与投影 */
+  /* 表面五级：中性石墨，带一丝暖，不偏绿 */
+  --bg-0: #0c0e0e;
+  --bg-1: #101313;
+  --surface-1: #161a19;
+  --surface-2: #1c211f;
+  --surface-3: #242a27;
+  /* 文字四级：正文与次要文字都要 ≥4.5:1 */
+  --text-1: #f1f4f1;
+  --text-2: #c8cfc9;
+  --text-3: #a6afa8;
+  --text-4: #8b948d;
+  /* 分隔 / 悬停 / 选中 */
+  --border-1: rgb(241 244 241 / .10);
+  --border-2: rgb(241 244 241 / .18);
+  --hover: rgb(241 244 241 / .06);
+  --hover-strong: rgb(241 244 241 / .11);
+  --selected: rgb(34 184 211 / .14);
+  /* 强调：单一青（calm teal） */
+  --accent: #22b8d3;
+  --accent-strong: #3ecfe8;
+  --accent-soft: rgb(34 184 211 / .16);
+  --accent-ink: #67e8f9;
+  --on-accent: #04212a;
+  /* 语义四色：fill / soft / ink */
+  --ok: #4ade80;     --ok-soft: rgb(74 222 128 / .16);     --ok-ink: #86efac;
+  --warn: #fbbf24;   --warn-soft: rgb(251 191 36 / .16);   --warn-ink: #fcd34d;
+  --danger: #f87171; --danger-soft: rgb(248 113 113 / .16); --danger-ink: #fca5a5;
+  --info: #60a5fa;   --info-soft: rgb(96 165 250 / .16);   --info-ink: #93c5fd;
+  /* 浮层：不透明表面 + 发丝；投影只给真正悬空的一层 */
   --glass: var(--surface-1);
   --glass-strong: var(--surface-2);
   --glass-border: var(--border-1);
-  --grid-dot: oklch(100% 0 0 / .08);
-  --thumb-bg: oklch(16% .008 150);
+  --shadow-1: 0 1px 2px rgb(0 0 0 / .28), 0 10px 26px -18px rgb(0 0 0 / .55);
+  --shadow-2: 0 28px 64px -34px rgb(0 0 0 / .72), 0 8px 24px -16px rgb(0 0 0 / .45);
+  --grid-dot: rgb(241 244 241 / .08);
+  --thumb-bg: #121514;
 }
 
 [data-theme="light"] {
   color-scheme: light;
-  /* 暖绿纸 */
-  --bg-0: oklch(97.4% .004 120);
-  --bg-1: oklch(98.8% .003 120);
-  --surface-1: oklch(100% 0 0);
-  --surface-2: oklch(100% 0 0);
-  --surface-3: oklch(100% 0 0);
-  --text-1: oklch(21% .006 130);
-  --text-2: oklch(33% .006 130);
-  --text-3: oklch(44% .005 130);
-  --text-4: oklch(49% .005 130);
-  --border-1: oklch(from var(--text-1) l c h / .11);
-  --border-2: oklch(from var(--text-1) l c h / .20);
-  --hover: oklch(from var(--text-1) l c h / .05);
-  --hover-strong: oklch(from var(--text-1) l c h / .09);
-  --selected: oklch(from var(--accent) l c h / .08);
-  --accent: oklch(52% .16 145);
-  --accent-strong: oklch(45% .15 145);
-  --accent-soft: oklch(from var(--accent) l c h / .12);
-  --accent-ink: oklch(from var(--accent) calc(l - .06) c h);
-  --on-accent: oklch(100% 0 0);
-  --ok: oklch(47% .13 160);   --ok-soft: oklch(from var(--ok) l c h / .12);   --ok-ink: oklch(from var(--ok) calc(l - .06) c h);
-  --warn: oklch(50% .12 62);  --warn-soft: oklch(from var(--warn) l c h / .12); --warn-ink: oklch(from var(--warn) calc(l - .06) c h);
-  --danger: oklch(49% .19 29); --danger-soft: oklch(from var(--danger) l c h / .12); --danger-ink: oklch(from var(--danger) calc(l - .04) c h);
-  --info: oklch(48% .11 220); --info-soft: oklch(from var(--info) l c h / .12); --info-ink: oklch(from var(--info) calc(l - .05) c h);
+  /* 暖纸底 + 纯白卡面 */
+  --bg-0: #f5f5f0;
+  --bg-1: #fafaf6;
+  --surface-1: #ffffff;
+  --surface-2: #ffffff;
+  --surface-3: #efefe8;
+  --text-1: #0f172a;
+  --text-2: #334155;
+  --text-3: #475569;
+  --text-4: #64748b;
+  --border-1: #dcdcd2;
+  --border-2: #c2c2b8;
+  --hover: rgb(15 23 42 / .05);
+  --hover-strong: rgb(15 23 42 / .09);
+  --selected: rgb(8 145 178 / .10);
+  --accent: #0891b2;
+  --accent-strong: #0e7490;
+  --accent-soft: rgb(8 145 178 / .12);
+  --accent-ink: #0e7490;
+  --on-accent: #04212a;
+  --ok: #15803d;     --ok-soft: rgb(21 128 61 / .12);     --ok-ink: #14532d;
+  --warn: #b45309;   --warn-soft: rgb(180 83 9 / .12);    --warn-ink: #7c2d12;
+  --danger: #dc2626; --danger-soft: rgb(220 38 38 / .10); --danger-ink: #991b1b;
+  --info: #2563eb;   --info-soft: rgb(37 99 235 / .10);   --info-ink: #1e3a8a;
   --glass: var(--surface-1);
   --glass-strong: var(--surface-1);
   --glass-border: var(--border-1);
-  --grid-dot: oklch(24% .02 130 / .09);
-  --thumb-bg: oklch(90% .008 130);
+  --shadow-1: 0 1px 2px rgb(24 30 40 / .06), 0 10px 26px -18px rgb(24 30 40 / .18);
+  --shadow-2: 0 30px 70px -36px rgb(24 30 40 / .30), 0 8px 24px -16px rgb(24 30 40 / .16);
+  --grid-dot: rgb(15 23 42 / .09);
+  --thumb-bg: #e9e9e2;
 }
 
 :root {
-  /* 圆角五档：标记 / 内嵌小件 / 常规控件 / 容器 / 胶囊 */
-  --r-xs: 3px; --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-pill: 999px;
+  /* 圆角：控件 10 / 卡片 12 / 容器 16 / 大面板 20 / 胶囊 */
+  --r-xs: 4px; --r-sm: 10px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px; --r-pill: 999px;
+
+  /* 间距阶梯（4 的倍数，新代码只用这几档） */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px;
 
   /* 外壳几何 */
   --chrome-h: 56px;
@@ -95,16 +103,17 @@
   --fs-5: 19px;   --lh-5: 1.3;
   --fs-6: 26px;   --lh-6: 1.15;
   --fs-7: 38px;   --lh-7: 1.05;
-  /* 一天的页码：随视口微调，但不失重 */
   --fs-day: clamp(58px, 4.9vw, 76px);
 
-  /* 字体：拉丁 Albert Sans（若未随包则回落系统），中文落苹方；
-     展示层走衬线（纽约/宋体），元数据走等宽 —— 三层各司其职 */
-  --font-body: "Albert Sans", -apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Segoe UI", system-ui, sans-serif;
+  /* 字体：设计系统给的是 Lora + Raleway（Google Fonts）；
+     本地优先产品不联网取字体，改用系统等价物：
+     标题落到 New York / 宋体，正文落到苹方 / Albert Sans，
+     元数据继续走等宽。三层各司其职，中文字形优先。 */
+  --font-body: "Raleway", "Albert Sans", -apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Segoe UI", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --font-display: "New York", "Iowan Old Style", ui-serif, "Songti SC", "Noto Serif SC", Georgia, serif;
+  --font-display: "Lora", "New York", "Iowan Old Style", ui-serif, "Songti SC", "Noto Serif SC", Georgia, serif;
 
-  /* 动效五档：按压 / 颜色 / 浮层 / 面板 / 镜头 */
+  /* 动效五档 */
   --dur-1: .12s; --dur-2: .18s; --dur-3: .28s; --dur-4: .45s; --dur-5: .62s;
   --ease-spring: cubic-bezier(.32,.72,0,1);
   --ease-out: cubic-bezier(.22,1,.36,1);
@@ -113,19 +122,19 @@
   --ease-bounce: cubic-bezier(.34,1.56,.64,1);
 
   /* 焦点环：键盘可见，鼠标不打扰 */
-  --focus-ring: 0 0 0 2px var(--bg-1), 0 0 0 4px oklch(from var(--accent) l c h / .55);
+  --focus-ring: 0 0 0 2px var(--bg-1), 0 0 0 4px rgb(34 184 211 / .55);
 
-  /* 相纸：暖米白一块干净的纸，无纹理、无投影 */
-  --paper: oklch(97% .021 88);
-  --paper-2: oklch(93.4% .015 88);
-  --paper-ink: oklch(27% .014 80);
-  --paper-ink-2: oklch(51% .012 80);
-  --paper-edge: oklch(30% .02 95 / .16);
+  /* 相纸：暖米白，与暖纸底同源 */
+  --paper: #faf4e8;
+  --paper-2: #f1e9da;
+  --paper-ink: #2a2418;
+  --paper-ink-2: #6b6250;
+  --paper-edge: rgb(42 36 24 / .16);
 
   /* 层级 */
   --z-grid: 0; --z-chrome: 30; --z-dock: 40; --z-drawer: 50;
   --z-overlay: 200; --z-toast: 400; --z-ctx: 500;
 
-  /* 图标：24 网格线性，笔画 2 */
+  /* 图标：16 网格线性，笔画 2 */
   --icon-stroke: 2;
 }

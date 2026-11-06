@@ -1343,7 +1343,7 @@ defineExpose({ startTour });
   border-radius: 2px;
   background-color: var(--paper);
   color: var(--paper-ink);
-  box-shadow: 0 0 0 .5px var(--paper-edge);
+  box-shadow: 0 0 0 .5px var(--paper-edge), var(--shadow-2);
   display: flex;
   flex-direction: column;
   transition: transform var(--dur-4) var(--ease-spring), box-shadow var(--dur-4) var(--ease-out);
@@ -1778,7 +1778,7 @@ defineExpose({ startTour });
   transform: rotate(-.7deg);
 }
 .ghost-page span { background: oklch(90% .01 95); border-radius: 1px; }
-.ghost-page span:first-child { background: oklch(87% .018 160); }
+.ghost-page span:first-child { background: oklch(88% .012 95); }
 .ghost-mark {
   position: absolute;
   inset: 4px;
@@ -1897,6 +1897,7 @@ defineExpose({ startTour });
 }
 /* 引导卡也做成一张相纸：和右侧「精选册」同一套物质语言 */
 .tour-card {
+  box-shadow: var(--shadow-2);
   position: fixed;
   left: 50%;
   bottom: 22px;
@@ -1940,7 +1941,7 @@ defineExpose({ startTour });
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: .14em;
-  color: oklch(45% .12 145);
+  color: #0e7490;
 }
 .tour-kicker span {
   font-family: var(--font-body);
@@ -1980,14 +1981,14 @@ defineExpose({ startTour });
   padding: 0 15px;
   border: none;
   border-radius: 3px;
-  background: oklch(30% .06 150);
+  background: #0e5a6b;
   color: var(--paper);
   font-size: 11.5px;
   font-weight: 500;
   letter-spacing: .04em;
   cursor: pointer;
 }
-.tour-next:hover { background: oklch(26% .06 150); }
+.tour-next:hover { background: #0b4653; }
 
 @media (prefers-reduced-motion: reduce) {
   .story::after { display: none; }
