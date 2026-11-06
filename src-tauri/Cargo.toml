@@ -1,6 +1,6 @@
 [package]
 name = "wanflow"
-version = "0.1.0"
+version = "0.2.0"
 description = "WanFlow - 面向宝妈宝爸的本地照片视频整理台"
 edition = "2021"
 

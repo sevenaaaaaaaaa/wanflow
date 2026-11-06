@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WanFlow · 家庭照片整理台</title>
+    <script>
+      // 首帧就定主题，避免深色闪一下；没存过就用浅色
+      (function () {
+        try {
+          var saved = localStorage.getItem("wanflow-theme");
+          document.documentElement.dataset.theme = saved === "dark" ? "dark" : "light";
+        } catch (e) {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>

@@ -75,7 +75,7 @@ function setView(v: View) {
 }
 
 // —— 主题 ——
-const theme = ref<"dark" | "light">("dark");
+const theme = ref<"dark" | "light">("light");
 function applyTheme() {
   document.documentElement.dataset.theme = theme.value;
   localStorage.setItem("wanflow-theme", theme.value);
