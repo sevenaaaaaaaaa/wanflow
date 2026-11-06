@@ -440,7 +440,7 @@ sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
 
 **验证**
 - `npm run build` 通过（53 modules，CSS 64.25 kB / gzip 11.93 kB）。
-- 无头 Chrome（playwright 缓存的 Chrome for Testing）+ `npm run dev` 截图核对两屏：故事线主界面、`/?empty` 空状态。改动前后各一张。
+- 无头 Chrome（playwright 缓存的 Chrome for Testing）+ `npm run dev` 截图核对四屏：故事线主界面 / `?empty` 空状态 / 网格 / 820 窄屏；图存 `docs/shots/flat-*.jpg`（`flat-storyline-1440`、`flat-empty-1440`、`flat-grid-1440`、`flat-storyline-820`）。
 - 残留检查：`--shadow*` / `--blur-*` / `--paper-grain` 引用为 0；`backdrop-filter` / `text-shadow` 只剩 0；`font-weight` 只剩 400/500。
 
 **故意没改的（规范与本产品冲突，需要时再说）**
