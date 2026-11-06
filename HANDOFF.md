@@ -425,3 +425,35 @@ sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
 **发布文档**
 - 新增 `CHANGELOG.md`：按用户可感知的变化写导入/整理/挑图/智能/交付/隐私 + 已知限制。
 - 本文件所指 `docs/发布与更新.md` 的三处版本号规则本轮已验证；首次发版无需 bump。
+
+## 2026-11-06 · 前端去装饰（按宿主微件视觉规范）
+
+**起因**：用户贴了一份「宿主内嵌微件」的视觉规范（扁平、无渐变/投影/模糊、字重只用 400/500、最小字号 11px、边框 0.5px、无 emoji），要求直接改造 WanFlow 界面。点选前已说明这是设计系统级改动。
+
+**做在哪个范围**（8 文件，+163/−274，提交 52ac1c5）
+- `src/tokens.css`：删 `--shadow / --shadow-sm / --shadow-lift / --blur-1 / --blur-2 / --paper-grain`；`--glass / --glass-strong / --glass-border` 改为不透明表面色 + `--border-1`（深色下分别是 `--surface-1` / `--surface-2`，浅色下都是白）。
+- `src/styles.css`：顶栏、Dock、命令面板、灯箱、Toast、重复面板去 `backdrop-filter` 与投影；`.app-shell` 去强调色辉光；扫描条与 `analyze` 去渐变；网格悬停去抬升投影（保留选中 2px 环）；遮罩透明度 .48/.55 → .72 补偿失去的模糊。
+- `src/components/Storyline.vue`：`.story` 去两层 radial 辉光与整页颗粒层；`.spread` 去相纸颗粒与五层投影（只留 `0 0 0 .5px var(--paper-edge)`）；删 `.spread-wrap::before` 暖光与 `.spread.developing::after` 白闪；`.develop` 按钮去渐变/发光；胶片条与精选册去掉悬停投影；时间轴圆点与进度条去 glow。
+- `src/components/EmptyState.vue`：`.paper` / `.stamp` 投影改 0.5px 环；`.shot` 去 `backdrop-filter`；主按钮上的 `kbd` 改浅底（原来绿底黑字发糊）。
+- `src/components/{PhotoGrid,DupPanel}.vue`：两处 emoji 兜底（🎬 / 🖼️）换成空占位 / 文字「无缩略图」。
+- 全局：`font-weight: 550|600|650|700` → 500；`font-size < 11px`（41 处）→ 11px；`border: 1px` → `0.5px`（39 处）。
+
+**验证**
+- `npm run build` 通过（53 modules，CSS 64.25 kB / gzip 11.93 kB）。
+- 无头 Chrome（playwright 缓存的 Chrome for Testing）+ `npm run dev` 截图核对两屏：故事线主界面、`/?empty` 空状态。改动前后各一张。
+- 残留检查：`--shadow*` / `--blur-*` / `--paper-grain` 引用为 0；`backdrop-filter` / `text-shadow` 只剩 0；`font-weight` 只剩 400/500。
+
+**故意没改的（规范与本产品冲突，需要时再说）**
+- 图表/图形里的「渐变」其实是画 1px 线的手法：相纸四角印刷角标、刻度尺、胶片栏分隔线、禁用斜杠 —— 删了图就没了，保留。
+- `EmptyState` 里 `.p0–.p3` 的渐变是**占位照片**（样例影像），属内容不属装饰，保留。
+- `position: fixed`：灯箱 / 命令面板 / 抽屉 / 引导层在用。规范禁 fixed 是因为 iframe 视口靠内容撑高；Tauri 里没有这个限制，保留。
+- 图标：规范要求用 Tabler 线性图标库；本仓库 `src/components/Icon.vue` 是自绘 16 网格线性图标，换库要加依赖并改 21 个文件，本轮未动。
+- 字号/标题：规范要求 h1 22 / h2 18 / h3 16；WanFlow 是杂志式展示字号（`--fs-5..7`，日号最大 76px），改成 22px 会把「一天一页」的版式压垮，保留现有阶梯。
+- 明暗双主题：规范要求强制深色；本产品双主题已发版，保留。
+
+**回滚**：`git revert 52ac1c5`（纯样式与两处模板占位，无数据/接口变更，不需要重建索引）。
+
+**别踩**
+- `--glass-strong` 现在是**不透明**的：任何依赖它做半透明背景的新组件都会变成实心块。
+- 最小字号抬到 11px 后，窄屏（<760px）胶片条与时间轴更挤；真实数据下要复看 `f-no` / `f-badge` / `gt-state` 会不会撞。
+- 相纸投影去掉后，深色背景下白纸与照片的分界只靠 0.5px `--paper-edge`；若真机上觉得「飘」，优先加一圈 `--border-1` 而不是恢复投影。
