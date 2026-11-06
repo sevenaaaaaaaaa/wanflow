@@ -137,14 +137,13 @@ function reset() {
   height: 6px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 h1 {
   margin: 16px 0 14px;
   font-size: clamp(34px, 4.2vw, 52px);
   line-height: 1.12;
   letter-spacing: -.03em;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-1);
 }
 h1 em {
@@ -160,7 +159,7 @@ h1 em {
   line-height: 1.75;
   color: var(--text-3);
 }
-.lede b { color: var(--text-1); font-weight: 600; }
+.lede b { color: var(--text-1); font-weight: 500; }
 .doors { display: flex; flex-wrap: wrap; gap: 10px; }
 .door {
   display: inline-flex;
@@ -169,11 +168,11 @@ h1 em {
   height: 44px;
   padding: 0 16px;
   border-radius: 10px;
-  border: 1px solid var(--border-2);
+  border: 0.5px solid var(--border-2);
   background: var(--surface-2);
   color: var(--text-1);
   font-size: var(--fs-3);
-  font-weight: 550;
+  font-weight: 500;
   cursor: pointer;
   transition: background var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out);
 }
@@ -186,13 +185,17 @@ h1 em {
 .door.primary:hover { background: var(--accent-strong); }
 .door kbd, .develop kbd {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1;
   padding: 3px 5px;
   border-radius: 4px;
   background: oklch(0% 0 0 / .16);
   color: inherit;
   opacity: .72;
+}
+.door.primary kbd, .develop kbd {
+  background: oklch(100% 0 0 / .34);
+  opacity: 1;
 }
 .fine {
   margin: 16px 0 0;
@@ -230,11 +233,7 @@ h1 em {
   border-radius: 3px;
   background: oklch(97% .012 95);
   color: oklch(30% .012 85);
-  box-shadow:
-    0 1px 0 oklch(100% 0 0 / .55) inset,
-    0 0 0 .5px oklch(30% .02 95 / .16),
-    0 10px 26px -16px oklch(10% .02 150 / .5),
-    0 30px 60px -40px oklch(10% .02 150 / .38);
+  box-shadow: 0 0 0 .5px oklch(30% .02 95 / .18);
 }
 .grid {
   display: grid;
@@ -288,7 +287,7 @@ h1 em {
   justify-content: space-between;
   gap: 12px;
   padding: 9px 2px 2px;
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: .02em;
   color: oklch(48% .012 85);
 }
@@ -301,8 +300,7 @@ h1 em {
   align-items: center;
   justify-content: center;
   border-radius: 3px;
-  background: oklch(97% .012 95 / .55);
-  backdrop-filter: blur(2.5px);
+  background: oklch(97% .012 95 / .94);
   animation: shotIn 220ms var(--ease-out) both;
 }
 .stamp {
@@ -313,9 +311,7 @@ h1 em {
   padding: 16px 28px 15px;
   border-radius: 4px;
   background: oklch(98.5% .008 95 / .97);
-  box-shadow:
-    0 0 0 .5px oklch(30% .02 95 / .14),
-    0 14px 30px -18px oklch(0% 0 0 / .5);
+  box-shadow: 0 0 0 .5px oklch(30% .02 95 / .18);
 }
 .stamp .ok {
   width: 28px;
@@ -327,14 +323,14 @@ h1 em {
   background: var(--accent-soft, oklch(92% .05 150));
   color: var(--accent-ink, oklch(38% .1 150));
 }
-.shot b { font-size: 17px; font-weight: 600; letter-spacing: -.01em; color: oklch(30% .012 85); }
+.shot b { font-size: 17px; font-weight: 500; letter-spacing: -.01em; color: oklch(30% .012 85); }
 .shot .stamp span { font-size: 11px; color: oklch(46% .012 85); }
 .shot button {
   margin-top: 9px;
   height: 26px;
   padding: 0 12px;
   border-radius: 7px;
-  border: 1px solid oklch(30% .02 95 / .18);
+  border: 0.5px solid oklch(30% .02 95 / .18);
   background: oklch(98.5% .008 95 / .9);
   color: oklch(30% .012 85);
   font-size: 11px;
@@ -378,7 +374,7 @@ h1 em {
   background: var(--accent);
   color: var(--on-accent);
   font-size: var(--fs-2);
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
 }
 .develop:hover { background: var(--accent-strong); }
@@ -390,18 +386,18 @@ h1 em {
   margin: 0;
   padding: 20px 0 0;
   list-style: none;
-  border-top: 1px solid var(--border-1);
+  border-top: 0.5px solid var(--border-1);
 }
 .steps li { display: flex; gap: 12px; align-items: flex-start; }
 .steps b {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: .06em;
   color: var(--accent);
   padding-top: 2px;
 }
 .steps span { font-size: var(--fs-2); line-height: 1.6; color: var(--text-3); }
-.steps strong { display: block; color: var(--text-1); font-weight: 600; margin-bottom: 2px; }
+.steps strong { display: block; color: var(--text-1); font-weight: 500; margin-bottom: 2px; }
 @media (max-width: 1000px) {
   .hero { grid-template-columns: 1fr; gap: 34px; }
   .demo { justify-self: start; max-width: 420px; }

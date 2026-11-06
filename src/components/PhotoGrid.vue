@@ -202,7 +202,7 @@ defineExpose({ focusFirst: () => moveFocus(0, false) });
         @click="cellClick(c.idx, c.m, $event)"
       >
         <img v-if="c.m.thumb" :src="thumbUrl(c.m)" loading="lazy" draggable="false" />
-        <div v-else class="thumbfallback">{{ c.m.kind === "video" ? "🎬" : "🖼️" }}</div>
+        <div v-else class="thumbfallback" aria-hidden="true"></div>
 
         <div class="badge">
           <span v-if="c.m.decision" class="state" :class="c.m.decision">

@@ -37,13 +37,10 @@
   --warn: oklch(80% .12 75);  --warn-soft: oklch(from var(--warn) l c h / .16); --warn-ink: oklch(from var(--warn) calc(l + .05) c h);
   --danger: oklch(76% .15 29); --danger-soft: oklch(from var(--danger) l c h / .16); --danger-ink: oklch(from var(--danger) calc(l + .09) calc(c * .8) h);
   --info: oklch(78% .11 220); --info-soft: oklch(from var(--info) l c h / .16); --info-ink: oklch(from var(--info) calc(l + .07) c h);
-  /* 玻璃与投影：只给真正悬空的浮层 */
-  --glass: oklch(36% .008 150 / .62);
-  --glass-strong: oklch(40% .008 150 / .78);
-  --glass-border: oklch(100% 0 0 / .14);
-  --shadow: 0 24px 60px -24px oklch(15% .03 150 / .55), 0 0 0 .5px oklch(100% 0 0 / .09);
-  --shadow-sm: 0 10px 26px -14px oklch(15% .03 150 / .45), 0 0 0 .5px oklch(100% 0 0 / .06);
-  --shadow-lift: 0 36px 70px -24px oklch(12% .03 150 / .62), 0 12px 24px -12px oklch(12% .03 150 / .40);
+  /* 浮层一律不透明、不发虚：只用表面色 + 0.5px 发丝，不用玻璃与投影 */
+  --glass: var(--surface-1);
+  --glass-strong: var(--surface-2);
+  --glass-border: var(--border-1);
   --grid-dot: oklch(100% 0 0 / .08);
   --thumb-bg: oklch(16% .008 150);
 }
@@ -74,12 +71,9 @@
   --warn: oklch(50% .12 62);  --warn-soft: oklch(from var(--warn) l c h / .12); --warn-ink: oklch(from var(--warn) calc(l - .06) c h);
   --danger: oklch(49% .19 29); --danger-soft: oklch(from var(--danger) l c h / .12); --danger-ink: oklch(from var(--danger) calc(l - .04) c h);
   --info: oklch(48% .11 220); --info-soft: oklch(from var(--info) l c h / .12); --info-ink: oklch(from var(--info) calc(l - .05) c h);
-  --glass: oklch(100% 0 0 / .62);
-  --glass-strong: oklch(100% 0 0 / .82);
-  --glass-border: oklch(100% 0 0 / .60);
-  --shadow: 0 24px 60px -24px oklch(40% .08 150 / .20), 0 0 0 .5px oklch(24% .02 130 / .08);
-  --shadow-sm: 0 8px 24px -12px oklch(40% .08 150 / .12), 0 0 0 .5px oklch(24% .02 130 / .06);
-  --shadow-lift: 0 32px 64px -24px oklch(35% .09 150 / .30), 0 8px 20px -8px oklch(35% .09 150 / .16);
+  --glass: var(--surface-1);
+  --glass-strong: var(--surface-1);
+  --glass-border: var(--border-1);
   --grid-dot: oklch(24% .02 130 / .09);
   --thumb-bg: oklch(90% .008 130);
 }
@@ -121,20 +115,17 @@
   /* 焦点环：键盘可见，鼠标不打扰 */
   --focus-ring: 0 0 0 2px var(--bg-1), 0 0 0 4px oklch(from var(--accent) l c h / .55);
 
-  /* 相纸：暗房里唯一一块「亮」——暖米白、极细纤维、印刷角标 */
+  /* 相纸：暖米白一块干净的纸，无纹理、无投影 */
   --paper: oklch(97% .021 88);
   --paper-2: oklch(93.4% .015 88);
   --paper-ink: oklch(27% .014 80);
   --paper-ink-2: oklch(51% .012 80);
   --paper-edge: oklch(30% .02 95 / .16);
-  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.16'/%3E%3C/svg%3E");
 
   /* 层级 */
   --z-grid: 0; --z-chrome: 30; --z-dock: 40; --z-drawer: 50;
   --z-overlay: 200; --z-toast: 400; --z-ctx: 500;
 
-  /* 玻璃毛玻璃半径 */
-  --blur-1: 10px; --blur-2: 22px;
   /* 图标：24 网格线性，笔画 2 */
   --icon-stroke: 2;
 }

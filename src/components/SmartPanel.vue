@@ -262,7 +262,7 @@ async function removeAlbum(id: number) {
 <style scoped>
 .ai-ready {
   background: rgba(99, 102, 241, 0.1);
-  border: 1px solid rgba(99, 102, 241, 0.35);
+  border: 0.5px solid rgba(99, 102, 241, 0.35);
   border-radius: 10px;
   padding: 12px 16px;
   display: flex;
@@ -305,7 +305,7 @@ async function removeAlbum(id: number) {
   top: 5px;
   left: 5px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   background: var(--accent);
   color: #fff;
   width: 22px;
@@ -315,7 +315,7 @@ async function removeAlbum(id: number) {
   place-items: center;
 }
 .album-detail {
-  border-top: 1px solid var(--line);
+  border-top: 0.5px solid var(--line);
   padding: 12px 18px 16px;
   max-height: 40vh;
   overflow-y: auto;

@@ -137,7 +137,7 @@ const verdict = computed(() => {
   width: min(1080px, 94vw);
   max-height: 92vh;
   background: var(--bg2);
-  border: 1px solid var(--line);
+  border: 0.5px solid var(--line);
   border-radius: 16px;
   padding: 16px 18px;
   display: flex;
@@ -185,7 +185,7 @@ const verdict = computed(() => {
 }
 .arena-bar .fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), #a78bfa);
+  background: var(--accent);
   transition: width 0.4s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 .arena-bar em { font-style: normal; min-width: 24px; text-align: right; color: var(--text); }

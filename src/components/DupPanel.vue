@@ -50,7 +50,7 @@ async function keepOne(id: number) {
       </p>
       <div v-for="m in members" :key="m.id" class="dup-card" :class="{ selected: picked.has(m.id) }">
         <img v-if="m.thumb" :src="thumbUrl(m)" @click="toggle(m.id)" style="cursor: pointer" />
-        <div v-else style="width: 74px; height: 74px; display: grid; place-items: center; font-size: 24px">🎬</div>
+        <div v-else style="width: 74px; height: 74px; display: grid; place-items: center; color: var(--text-4); font-size: 11px; border: 0.5px solid var(--border-1); border-radius: var(--r-sm)">无缩略图</div>
         <div class="info">
           <b :title="m.path">{{ m.filename }}</b>
           {{ fmtTime(m.effTime) }} · {{ fmtBytes(m.sizeBytes) }}
