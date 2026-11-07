@@ -9,7 +9,7 @@ const busy = ref(false);
 const progressMsg = ref("");
 const error = ref("");
 
-const tab = ref<"search" | "select" | "albums">("search");
+const tab = ref<"search" | "select" | "albums" | "agent">("search");
 
 // 搜索
 const searchQuery = ref("");
@@ -23,6 +23,11 @@ const selectResults = ref<ScoredMedia[]>([]);
 const selectParsed = ref("");
 const selectAlbumName = ref("");
 const albumSaved = ref(false);
+
+// 对话选片
+const agentPrompt = ref("");
+const agentResult = ref<{ items: ScoredMedia[]; reason: string; model: string } | null>(null);
+const agentBusy = ref(false);
 
 // 精选集
 const albums = ref<AlbumItem[]>([]);
@@ -126,6 +131,20 @@ async function saveAlbum() {
   }
 }
 
+async function doAgent() {
+  error.value = "";
+  agentBusy.value = true;
+  agentResult.value = null;
+  try {
+    const r = await api.agentSelect(agentPrompt.value);
+    agentResult.value = { items: r.items, reason: r.reason, model: r.model };
+  } catch (e) {
+    error.value = String(e);
+  } finally {
+    agentBusy.value = false;
+  }
+}
+
 async function openAlbumDetail(a: AlbumItem) {
   const items = await api.albumMedia(a.id);
   openAlbum.value = { name: a.name, items };
@@ -174,6 +193,7 @@ async function removeAlbum(id: number) {
           <button :class="{ on: tab === 'albums' }" @click="tab = 'albums'; refreshAlbums()">
             📔 精选集 ({{ albums.length }})
           </button>
+          <button :class="{ on: tab === 'agent' }" @click="tab = 'agent'">🤖 对话选片</button>
         </div>
 
         <!-- 语义搜索 -->
@@ -224,6 +244,30 @@ async function removeAlbum(id: number) {
             <button class="primary" @click="saveAlbum">
               {{ albumSaved ? "✓ 已保存" : "存为精选集" }}
             </button>
+          </div>
+        </div>
+
+        <!-- 对话选片 -->
+        <div v-else-if="tab === 'agent'">
+          <div class="form-row" style="margin-top: 12px">
+            <input
+              v-model="agentPrompt"
+              placeholder="跟万照聊聊：挑几张娃笑得最开心的，我要做周岁相册"
+              style="flex: 1"
+              @keyup.enter="doAgent"
+            />
+            <button class="primary" :disabled="agentBusy || !agentPrompt" @click="doAgent">
+              {{ agentBusy ? "思考中…" : "发送" }}
+            </button>
+          </div>
+          <p v-if="agentResult" class="hint" style="margin: 6px 0">
+            💡 {{ agentResult.reason }}（{{ agentResult.model }} 本地推理）
+          </p>
+          <div class="result-grid">
+            <div v-for="(m, i) in agentResult?.items ?? []" :key="m.id" class="result-card">
+              <img v-if="m.thumb" :src="thumbUrl({ thumb: m.thumb } as any)" loading="lazy" />
+              <span class="rank">{{ i + 1 }}</span>
+            </div>
           </div>
         </div>
 

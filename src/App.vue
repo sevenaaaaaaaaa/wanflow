@@ -11,6 +11,7 @@ import HistoryDrawer from "./components/HistoryDrawer.vue";
 import SuggestionsPanel from "./components/SuggestionsPanel.vue";
 import ImportModal from "./components/ImportModal.vue";
 import SmartPanel from "./components/SmartPanel.vue";
+import FamilyPanel from "./components/FamilyPanel.vue";
 import Arena from "./components/Arena.vue";
 
 // —— 库状态 ——
@@ -46,6 +47,7 @@ const dupGroup = ref<number | null>(null);
 const showSuggestions = ref(false);
 const showImport = ref(false);
 const showSmart = ref(false);
+const showFamily = ref(false);
 const suggestions = ref<SuggestionItem[]>([]);
 const arenaGroup = ref<number | null>(null);
 
@@ -187,6 +189,13 @@ onMounted(async () => {
       analyze.value = { running: false, phase: e.payload, done: 0, total: 0, current: "" };
       showToast(`分析失败: ${e.payload}`);
     }),
+    listen("clip://done", async () => {
+      await refresh();
+      showToast("✨ AI 任务完成");
+    }),
+    listen<string>("clip://error", async e => {
+      showToast(`AI 任务失败: ${e.payload}`);
+    }),
   ]);
   await refresh();
   const s = await api.getScanStatus();
@@ -240,6 +249,7 @@ const progressPct = computed(() =>
       <span class="spacer"></span>
 
       <button @click="showSmart = true">✨ 智能精选</button>
+      <button @click="showFamily = true">👨‍👩‍👧 家人</button>
       <button @click="runAnalyze" :disabled="analyze.running">
         {{ analyze.running ? "分析中…" : "质量分析" }}
       </button>
@@ -353,6 +363,13 @@ const progressPct = computed(() =>
     <SmartPanel
       v-if="showSmart"
       @close="showSmart = false"
+      @refresh="refresh"
+    />
+
+    <!-- 家人面板 -->
+    <FamilyPanel
+      v-if="showFamily"
+      @close="showFamily = false"
       @refresh="refresh"
     />
 

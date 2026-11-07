@@ -2,6 +2,9 @@ pub mod analyze;
 pub mod clip;
 pub mod commands;
 pub mod db;
+pub mod faces;
+mod family;
+mod chat;
 pub mod phash;
 mod quality;
 pub mod scanner;
@@ -54,6 +57,13 @@ pub fn run() {
             commands::analyze_all,
             commands::get_suggestions,
             commands::resolve_suggestions,
+            family::family_index_all,
+            family::family_clusters,
+            family::family_members,
+            family::family_register,
+            family::family_assign_cluster,
+            family::family_remove,
+            chat::agent_select,
             smart::clip_status,
             smart::clip_download,
             smart::embed_all,

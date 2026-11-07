@@ -159,6 +159,37 @@ export interface AlbumItem {
   createdAt: number;
 }
 
+export interface FamilyIndexSummary {
+  photos: number;
+  faces: number;
+  clusters: number;
+  autoAssigned: number;
+}
+
+export interface ClusterItem {
+  cluster: number;
+  faceCount: number;
+  photoCount: number;
+  repThumb: string | null;
+  personId: number | null;
+  personName: string | null;
+  isFamily: boolean;
+}
+
+export interface FamilyMember {
+  id: number;
+  name: string;
+  faceCount: number;
+  photoCount: number;
+}
+
+export interface AgentSelectResult {
+  items: ScoredMedia[];
+  reason: string;
+  model: string;
+  candidates: number;
+}
+
 export interface SourceItem {
   id: number;
   kind: "folder" | "photos" | "webdav" | "qq";
@@ -210,6 +241,16 @@ export const api = {
     invoke<number>("create_album", { name, ids, scores }),
   deleteAlbum: (id: number) => invoke<void>("delete_album", { id }),
   albumMedia: (id: number) => invoke<ScoredMedia[]>("album_media", { id }),
+  familyIndexAll: () => invoke<void>("family_index_all"),
+  familyClusters: () => invoke<ClusterItem[]>("family_clusters"),
+  familyMembers: () => invoke<FamilyMember[]>("family_members"),
+  familyRegister: (cluster: number, name: string) =>
+    invoke<number>("family_register", { cluster, name }),
+  familyAssignCluster: (cluster: number, personId: number) =>
+    invoke<void>("family_assign_cluster", { cluster, personId }),
+  familyRemove: (personId: number) => invoke<void>("family_remove", { personId }),
+  agentSelect: (prompt: string, pool?: string) =>
+    invoke<AgentSelectResult>("agent_select", { query: { prompt, pool } }),
   resolveSuggestions: (ids: number[], apply: boolean) =>
     invoke<string>("resolve_suggestions", { ids, apply }),
 };

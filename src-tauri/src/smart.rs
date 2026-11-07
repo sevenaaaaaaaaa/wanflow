@@ -2,7 +2,7 @@
 //! 原则不变：推理全本地，模型文件懒下载，一切结果只是建议。
 
 use crate::clip;
-use crate::commands::MEDIA_COLS;
+use crate::commands::{guard_scan, MEDIA_COLS};
 use crate::db::{EFF_DECISION, EFF_STARS, EFF_TIME};
 use crate::state::{AppState, ScanStatus};
 use rusqlite::Connection;
@@ -82,7 +82,7 @@ pub fn clip_status(state: State<'_, AppState>) -> Result<AiStatus, String> {
 
 #[tauri::command]
 pub fn clip_download(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
-    guard_analyze(&state)?;
+    guard_scan(&state)?;
     tauri::async_runtime::spawn_blocking(move || {
         let result = clip::ensure_models(&|msg| {
             let _ = app.emit(
@@ -105,18 +105,8 @@ pub fn clip_download(app: AppHandle, state: State<'_, AppState>) -> Result<(), S
             }
         }
         let state = app.state::<AppState>();
-        *lock(&state.analyze) = ScanStatus::default();
+        *lock(&state.scan) = ScanStatus::default();
     });
-    Ok(())
-}
-
-/// AI 任务（模型下载/嵌入）共用 analyze 互斥锁
-fn guard_analyze(state: &State<'_, AppState>) -> Result<(), String> {
-    let mut a = lock(&state.analyze);
-    if a.running {
-        return Err("已有 AI 任务在进行中".into());
-    }
-    *a = ScanStatus { running: true, phase: "准备中".into(), ..Default::default() };
     Ok(())
 }
 
@@ -136,7 +126,7 @@ pub fn embed_all(app: AppHandle, state: State<'_, AppState>) -> Result<(), Strin
     if !clip::models_ready() {
         return Err("CLIP 模型还没下载，请先在「智能精选」里下载模型".into());
     }
-    guard_analyze(&state)?;
+    guard_scan(&state)?;
     let cache = state.cache_dir.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let app3 = app.clone();
@@ -238,6 +228,10 @@ fn load_embeddings(conn: &Connection) -> Result<Vec<(i64, Vec<f32>)>, String> {
         .flatten()
         .map(|(id, blob)| (id, blob_to_vec(&blob)))
         .collect())
+}
+
+pub fn media_by_ids_public(conn: &Connection, ids: &[i64]) -> Result<Vec<crate::commands::MediaItem>, String> {
+    media_by_ids(conn, ids)
 }
 
 fn media_by_ids(conn: &Connection, ids: &[i64]) -> Result<Vec<crate::commands::MediaItem>, String> {
