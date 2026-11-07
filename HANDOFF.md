@@ -567,3 +567,25 @@ sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
 **验证方式**：`git log --oneline -1` 应为 34e9a95；`git status --short` 只应有 STATE.md / HANDOFF.md；`git stash list` 应有 1 条。
 
 **未提交的改动**：STATE.md、HANDOFF.md（本条收工记录，如需入库走 `docs:` 提交）。
+
+---
+
+## 2026-11-07 23:35 · DSH / lead · 开发机（macOS）
+
+**做到哪**：两项功能完成，全部落在分支 `crew/family-ai-update-check`（未推送）：
+
+1. **家人/人脸/AI 功能线恢复合并**：stash 先固化为永久快照 3346fd4（旧基线 ac6b71c），再合并进 v0.2.1（a743b26）。新增 faces.rs（386 行）/ family.rs（435）/ chat.rs（302）/ FamilyPanel.vue（189），lib.rs 注册 7 个命令（family_* ×6 + agent_select），App.vue 接入家人面板与 clip://done|error 事件回传，api.ts 补 4 个类型 + 7 个方法。冲突仅 3 个文件（lib.rs / App.vue / api.ts），按「新版结构优先、旧功能全部移植」解决；另加 users 图标（2a398ef）。
+2. **应用内检查更新**（e1de2cb）：`api.checkUpdate` 匿名调 GitHub Releases API 与 `__APP_VERSION__` 比对；入口两处：⌘K「帮助 → 检查更新…」、欢迎页版本行「检查更新」；发现新版时复制 dmg 地址到剪贴板并 toast，限流/断网时 toast 说明原因。
+
+**为什么停**：功能完成待用户验收；未推送、未合并 main、未重新打包。
+
+**下一个动作**：验收通过后 `git push -u origin crew/family-ai-update-check` → 合并 main → `npm run tauri build` 出新安装包并替换 /Applications/WanFlow.app；验收前可先 `npm run tauri dev` 真机点一遍。
+
+**别踩**：
+- 旧库 faces 表已有 2405 行聚类数据（10 月开发版跑的），persons 为空：FamilyPanel 首开会显示未命名聚类，注册名字后才能按人筛选；agent_select 走 Ollama，未装时按钮会提示「未安装」。
+- 合并把旧设计文档带回来了：`docs/DESIGN.md` + `assets/tokens.css` 是旧体系存档，口径已在 AGENTS.md 改为 `design-system/wanflow/MASTER.md` + `src/tokens.css`。
+- 存量组件有硬编码色（Arena / DupPanel / SmartPanel / EmptyState），属 v0.2.1 遗留，新代码不得新增，待专项清理。
+
+**验证方式**：`cargo test`（54 绿 / 0 失败）+ `npm run build`（611ms）+ 浏览器冒烟截图 `docs/shots/smoke-update-check.png`（⌘K 检查更新 → toast「已是最新版本 v0.2.1」）。
+
+**未提交的改动**：无（本段与截图一并提交）。

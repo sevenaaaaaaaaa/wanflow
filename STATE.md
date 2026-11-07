@@ -23,7 +23,8 @@ v0.2.1（2026-11-07 已发版：GitHub Release 提供 arm64 dmg，未签名/未�
 | 场景聚类 | 引擎 a056b65 + UI 2893e41 已提交；真实库已下 CLIP 模型并嵌入 30/30、重建 30 场（二次 rebuild `changed=0`）；校准工具 21f4bb9 | 真实库 30 张是彼此无关的风景照，**没有同场景多拍**，跨设备合并率只能用代理变体测（0.82 时 85.6%、误并 0）；需要真实家庭照片定稿 | DSH / lead |
 | 视觉扁平化 | 52ac1c5 已提交（`npm run build` 通过 + 浏览器截图核对），等用户试用 | 需 `npm run tauri dev` 在真实照片下看三处：相纸白平衡、悬浮层分界、11px 小字 | DSH / lead |
 | 设计系统接入 | 已发版 0.2.0：浅色默认 + 暖纸/青；`design-system/wanflow/MASTER.md` 为唯一口径 | 真实照片下看青强调是否太亮、浅色下相纸与底色的分层是否够 | DSH / lead |
-| 本地未提交 WIP（faces / family / chat / 事件回传，10-25~10-29 其他 agent 遗留，9 天未动） | 已 `git stash push -u` 暂存为 stash@{0}（含 assets/、docs/DESIGN.md 等未跟踪文件），仓库已同步 v0.2.1 | 恢复需合并到新基线：9 个文件（App.vue、api.ts、SmartPanel.vue、lib.rs、db.rs、clip.rs、smart.rs、commands.rs、embed_bench.rs）远端也改过，可能冲突；去留等用户决定 | DSH / lead（2026-11-07 暂存） |
+| 家人 / 人脸 / AI 功能线（恢复合并） | 已合并到 v0.2.1 基线（3346fd4 快照 → a743b26 合并）；cargo test 54 绿、npm run build 通过；顶栏「家人」入口 + FamilyPanel 就位 | 需真机 `npm run tauri dev` 验收：人脸聚类质量、家人注册/按人筛选、AI 精选（agent_select 走 Ollama）；未发版 | DSH / lead（2026-11-07） |
+| 应用内检查更新 | 已实现并冒烟：⌘K「帮助 → 检查更新…」+ 欢迎页版本行入口；匿名调 GitHub Release 比对 `__APP_VERSION__`；截图 docs/shots/smoke-update-check.png | 真机验收；随下次发版生效 | DSH / lead（2026-11-07） |
 
 ## 下一步（按先后顺序）
 
@@ -54,6 +55,8 @@ v0.2.1（2026-11-07 已发版：GitHub Release 提供 arm64 dmg，未签名/未�
 
 | 日期 | 做了什么 | 回滚方式 |
 |---|---|---|
+| 2026-11-07 | `feat`: 恢复家人/人脸/AI 功能线并合并到 v0.2.1（faces/family/chat + FamilyPanel + AI 事件回传）— 3346fd4 / a743b26 | `git revert -m 1 a743b26`（去功能线、留 v0.2.1） |
+| 2026-11-07 | `feat`: 应用内检查更新（⌘K + 欢迎页入口，GitHub Release 比对 + 下载地址复制）— e1de2cb / 2a398ef | `git revert e1de2cb 2a398ef` |
 | 2026-11-07 | 同步远端：main ac6b71c → 34e9a95（44 提交），拿到 tag v0.1.0/v0.2.0/v0.2.1；本地 21 处未提交改动 stash 暂存 | 恢复暂存：`git stash pop`；版本回退：`git reset --hard ac6b71c` |
 | 2026-11-07 | `chore`: 发版 v0.2.1（版本号跟随安装包；dmg 16.97 MiB，sha256 `c86095f8…`）— c7997b7 / 1ee03e7 / tag v0.2.1 | 发新版本修，**不删 tag** |
 | 2026-11-07 | `chore`: 发版 v0.2.0（浅色默认 + 新视觉，dmg 16.97 MiB，sha256 `91320c7d…`）— 80a7bc6 / 03d1788 / tag v0.2.0 | 发新版本修，**不删 tag** |
