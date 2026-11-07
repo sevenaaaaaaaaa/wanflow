@@ -255,6 +255,30 @@ async function openHistory() {
   showHistory.value = true;
 }
 
+// —— 检查更新（GitHub Release）——
+const checkingUpdate = ref(false);
+async function checkForUpdates() {
+  if (checkingUpdate.value) return;
+  checkingUpdate.value = true;
+  try {
+    const r = await api.checkUpdate();
+    if (r.error) {
+      showToast(`检查更新失败：${r.error}`);
+    } else if (r.newer) {
+      if (r.url) {
+        try { await navigator.clipboard.writeText(r.url); } catch { /* 剪贴板不可用则只提示 */ }
+        showToast(`发现新版本 v${r.latest}（当前 v${r.current}），下载地址已复制到剪贴板`);
+      } else {
+        showToast(`发现新版本 v${r.latest}（当前 v${r.current}）`);
+      }
+    } else {
+      showToast(`已是最新版本 v${r.current}`);
+    }
+  } finally {
+    checkingUpdate.value = false;
+  }
+}
+
 function toggleId(id: number) {
   const next = new Set(selection.value);
   if (next.has(id)) next.delete(id);
@@ -378,6 +402,7 @@ const commands = computed<Cmd[]>(() => {
     { id: "view-story", group: "视图", label: "故事线：一天一页，定量显影", kbd: "⌘1", run: () => setView("story") },
     { id: "view-grid", group: "视图", label: "网格：逐张浏览", kbd: "⌘2", run: () => setView("grid") },
     ...FILTERS.map<Cmd>((f) => ({ id: `f-${f.key}`, group: "视图", label: `筛选：${f.label}`, run: () => setFilter(f.key) })),
+    { id: "update", group: "帮助", label: "检查更新…", run: checkForUpdates },
   ];
   return out;
 });
@@ -517,7 +542,7 @@ const progressPct = computed(() =>
     </div>
 
     <!-- 主区域 -->
-    <EmptyState v-if="!hasLibrary && !scan.running" @pick="pickAndScan" />
+    <EmptyState v-if="!hasLibrary && !scan.running" @pick="pickAndScan" @check-update="checkForUpdates" />
     <Storyline
       v-else-if="view === 'story'"
       ref="storyRef"

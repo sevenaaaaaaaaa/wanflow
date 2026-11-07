@@ -253,6 +253,25 @@ export interface SourceItem {
   mediaCount: number;
 }
 
+export interface UpdateCheckResult {
+  current: string;
+  latest: string | null;
+  newer: boolean;
+  url: string | null;
+  error: string | null;
+}
+
+/** 语义化版本比较：>0 表示 a 更新 */
+function cmpSemver(a: string, b: string): number {
+  const pa = a.replace(/^v/, "").split(".").map((n) => parseInt(n, 10) || 0);
+  const pb = b.replace(/^v/, "").split(".").map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d) return d;
+  }
+  return 0;
+}
+
 export const api = {
   importFolder: (path: string, kind: "folder" | "qq", label: string) =>
     invoke<void>("import_folder", { path, kind, label }),
@@ -312,6 +331,32 @@ export const api = {
   exportPreview: (opts: ExportOptions) => invoke<ExportPlan>("export_preview", { opts }),
   exportApply: (opts: ExportOptions) => invoke<void>("export_apply", { opts }),
   exportStatus: () => invoke<ScanStatus>("export_status"),
+  // 检查更新：匿名调 GitHub Releases API（仓库公开；限流/断网时给出原因）
+  checkUpdate: async (): Promise<UpdateCheckResult> => {
+    const current = __APP_VERSION__;
+    try {
+      const res = await fetch(
+        "https://api.github.com/repos/sevenaaaaaaaaa/wanflow/releases/latest",
+        { headers: { Accept: "application/vnd.github+json" } },
+      );
+      if (!res.ok) {
+        return { current, latest: null, newer: false, url: null, error: `GitHub ${res.status}（可能限流，稍后再试）` };
+      }
+      const rel = (await res.json()) as {
+        tag_name?: string;
+        html_url?: string;
+        assets?: { name: string; browser_download_url: string }[];
+      };
+      const latest = (rel.tag_name ?? "").replace(/^v/, "") || null;
+      const url =
+        rel.assets?.find((a) => a.name.endsWith(".dmg"))?.browser_download_url ??
+        rel.html_url ??
+        null;
+      return { current, latest, newer: !!latest && cmpSemver(latest, current) > 0, url, error: null };
+    } catch (e) {
+      return { current, latest: null, newer: false, url: null, error: e instanceof Error ? e.message : String(e) };
+    }
+  },
 };
 
 function readable(path: string | null): string {
