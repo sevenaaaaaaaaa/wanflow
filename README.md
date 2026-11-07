@@ -2,18 +2,36 @@
 
 面向宝妈宝爸的本地优先照片/视频整理工具：多源导入、自动去重、时间修复、键盘快速挑拣，输出可直接做相册/成片的精选集。**原图永不被修改。**
 
-当前进度：**M3 多源导入**（详见 [BLUEPRINT.md](BLUEPRINT.md)，调研见 [RESEARCH.md](RESEARCH.md)）。
+当前进度：**M5 家人与 agent**（详见 [BLUEPRINT.md](BLUEPRINT.md)，调研见 [RESEARCH.md](RESEARCH.md)）。
 
-## M3 已有功能（在 M2 之上）
+## M5 已有功能（在 M4 之上）
 
 | 功能 | 说明 |
 |---|---|
-| 导入中心 | 顶栏「导入」打开统一入口：本地文件夹 / macOS 照片图库 / 网盘 WebDAV / QQ·微信导出目录 / 来源管理 |
-| macOS 照片图库 | 优先 osxphotos（自动装进 `~/.wanflow/osxphotos-venv`，也可用 PATH 里的）；保留原始文件名 + **图库记录时间直接作为权威拍摄时间**（272/272 全覆盖，HEIC 无 EXIF 也不怕）；iCloud 未下载的自动跳过并可之后重扫。没装 osxphotos 时回退直扫 originals 目录 |
-| 网盘 WebDAV | 兼容 Alist/群晖/Apache/nginx dav：递归列目录（防爆炸上限）→ 增量下载到暂存区（同大小+同 mtime 跳过）→ 恢复远端修改时间 → 扫描。**密码只进系统钥匙串**。配合 [Alist](https://github.com/AlistGo/alist) 一个协议覆盖百度/阿里/夸克/OneDrive |
-| QQ·微信导出目录 | 导入企鹅相册(QzonePhoto)/QQ空间导出助手等下载的目录，文件名时间戳自动恢复拍摄时间（EXIF 普遍丢失的场景） |
-| 来源管理 | 每个来源记录类型/路径/数量/上次同步时间；支持**增量重新同步**（folder/qq 重扫、photos 重查询、webdav 增量下载）和解除关联（文件与决策保留） |
-| 溯源 | media 表挂 source_id，跨来源内容 hash 去重依然生效（同照片多来源只算重复组） |
+| 人脸检测/识别 | YuNet 检测（0.2MB）+ SFace 128 维识别（38MB），OpenCV Zoo 模型，全本地。ArcFace 五点对齐，检测+识别+对齐真实库 4206 张 48 秒（~12ms/张） |
+| 家人注册 | 全库扫描 → 嵌入聚类（贪心代表匹配）→ 按出现次数排序的候选簇列表 → 「这是家人」起名注册；新脸自动认领（重扫时与已注册家人比对挂靠）；支持归入/取消 |
+| 智能选片家人加权 | 「智能精选」里出现注册家人的照片 +0.08（首人）/ +0.02（后续），家用优先级高于画面质量 |
+| agent 对话选片 | 顶栏「智能精选 → 🤖 对话选片」：Ollama 本地 LLM（qwen3 已验证）在 CLIP top-40 候选上重排，只能从候选 id 中选（防幻觉）+ 一句话理由，2.9 秒出结果 |
+
+## M4 已有功能
+
+| 功能 | 说明 |
+|---|---|
+| CLIP 语义索引 | ViT-B/32 fp32 全本地（29ms/张），模型懒下载双源回退 |
+| 语义搜索 | 一句话搜照片，相似度排序 |
+| 智能精选 | 自然语言配额（"挑 12 张…"）+ 质量加成 + 排除已淘汰 |
+| 精选集 | 保存/查看/删除，为导出备弹药 |
+| 模型管理 | 状态条引导，任务互斥 |
+
+## M3 已有功能
+
+| 功能 | 说明 |
+|---|---|
+| 导入中心 | 顶栏「导入」统一入口：本地文件夹 / macOS 照片图库 / 网盘 WebDAV / QQ·微信导出目录 / 来源管理 |
+| macOS 照片图库 | 优先 osxphotos（专用 venv 自动检测）；原始文件名 + 图库记录时间=权威拍摄时间；iCloud 未下载自动跳过；无 osxphotos 回退直扫 originals |
+| 网盘 WebDAV | 兼容 Alist/群晖等：递归列目录、增量下载、保留远端 mtime、密码只进钥匙串 |
+| QQ·微信导出目录 | 企鹅相册/QQ空间导出助手下载的目录，文件名时间戳自动恢复拍摄时间 |
+| 来源管理 | 增量重新同步 / 解除关联（文件与决策保留） |
 
 ## M2 已有功能
 
@@ -49,13 +67,18 @@ npx tauri build   # 打包 .app / .dmg（Windows 同命令出 .msi/.exe）
 核心逻辑测试：
 
 ```bash
-cd src-tauri && cargo test   # 28 个测试：pHash/时间恢复/扫描去重/质量指标/连拍/建议/WebDAV解析
+cd src-tauri && cargo test   # 31 个测试：pHash/时间恢复/扫描去重/质量指标/连拍/建议/WebDAV/CLIP/人脸对齐
 ```
 
-真实库性能分析（对已导入的库跑一次完整分析，第二连接 WAL 安全）：
+真实库性能 / 验证（第二连接 WAL 安全）：
 
 ```bash
-cd src-tauri && cargo run --example analyze_bench
+cd src-tauri && cargo run --release --example analyze_bench   # 质量分析
+cd src-tauri && cargo run --release --example embed_bench     # CLIP 语义索引
+cd src-tauri && cargo run --release --example family_bench    # 人脸索引 + 聚类
+cd src-tauri && cargo run --release --example clip_e2e        # CLIP 语义判别断言
+cd src-tauri && cargo run --release --example face_e2e        # 人脸检出 + 同人聚类断言
+cd src-tauri && cargo run --release --example agent_e2e       # Ollama 对话选片断言（需 ollama serve）
 ```
 
 ## 技术栈
@@ -64,7 +87,6 @@ Tauri 2（macOS WKWebView / Windows WebView2，原生无 Chromium 捆绑）· Ru
 
 ## 路线图（详见 BLUEPRINT.md v0.3）
 
-- **M4** CLIP 语义索引 + Ollama 三层 agent + 中文配额选片 + ONNX 模型升级（MUSIQ/人脸/闭眼）+ 家人注册；QQ 空间直连 API（扫码登录）
-- **M5** CRDT 家人协同（yrs，走用户自己的 WebDAV/S3）+ `.wanpack` 整库迁移
-- **M6** 视频精彩段 + 导出（修正EXIF/去GPS/Immich/pyCapCut 剪映草稿）
-- **M7** 本地加密库（SQLCipher + 媒体逐文件 AES-256-GCM）
+- **M5** 人脸/闭眼 ONNX + 家人注册；agent 对话选片（Ollama 三层架构已检测就绪）；QQ 空间直连 API
+- **M6** CRDT 家人协同（yrs）+ `.wanpack` 整库迁移；精选集导出（修正EXIF/去GPS/剪映草稿）
+- **M7** 视频精彩段；本地加密库（SQLCipher + 媒体逐文件 AES-256-GCM）

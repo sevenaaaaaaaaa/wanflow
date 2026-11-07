@@ -13,6 +13,7 @@ import HistoryDrawer from "./components/HistoryDrawer.vue";
 import SuggestionsPanel from "./components/SuggestionsPanel.vue";
 import ImportModal from "./components/ImportModal.vue";
 import SmartPanel from "./components/SmartPanel.vue";
+import FamilyPanel from "./components/FamilyPanel.vue";
 import Arena from "./components/Arena.vue";
 import ExportModal from "./components/ExportModal.vue";
 import CommandPalette from "./components/CommandPalette.vue";
@@ -56,6 +57,7 @@ const dupGroup = ref<number | null>(null);
 const showSuggestions = ref(false);
 const showImport = ref(false);
 const showSmart = ref(false);
+const showFamily = ref(false);
 const suggestions = ref<SuggestionItem[]>([]);
 const arenaGroup = ref<number | null>(null);
 const showExport = ref(false);
@@ -400,6 +402,13 @@ onMounted(async () => {
         analyze.value = { running: false, phase: e.payload, done: 0, total: 0, current: "" };
         showToast(`分析失败: ${e.payload}`);
       }),
+      listen("clip://done", async () => {
+        await refresh();
+        showToast("AI 任务完成");
+      }),
+      listen<string>("clip://error", async (e) => {
+        showToast(`AI 任务失败: ${e.payload}`);
+      }),
     ]);
   } catch {
     // 浏览器预览（无 Tauri 事件总线）时静默降级，不影响页面与演示数据。
@@ -481,6 +490,9 @@ const progressPct = computed(() =>
       </button>
       <button class="ghost" @click="showSmart = true" title="智能精选">
         <Icon name="sparkle" /> 精选
+      </button>
+      <button class="ghost" @click="showFamily = true" title="家人">
+        <Icon name="users" /> 家人
       </button>
       <button class="primary" @click="showImport = true" :disabled="scan.running">
         <Icon name="folder" /> {{ scan.running ? "导入中…" : "导入" }}
@@ -606,6 +618,13 @@ const progressPct = computed(() =>
 
     <!-- 智能精选 -->
     <SmartPanel v-if="showSmart" @close="showSmart = false" @refresh="refresh" />
+
+    <!-- 家人面板 -->
+    <FamilyPanel
+      v-if="showFamily"
+      @close="showFamily = false"
+      @refresh="refresh"
+    />
 
     <!-- 导入中心 -->
     <ImportModal

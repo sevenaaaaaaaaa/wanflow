@@ -11,12 +11,12 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 pub const EMB_DIM: usize = 512;
-pub const EMB_MODEL: &str = "clip-vit-b32-xenova-q8";
+pub const EMB_MODEL: &str = "clip-vit-b32-xenova-fp32";
 
 // transformers.js 官方导出：CLIPModel 全模型单文件（双塔一次跑），int8 量化 CPU 最快
 const MODEL_URLS: &[&str] = &[
-    "https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/model_quantized.onnx",
-    "https://hf-mirror.com/Xenova/clip-vit-base-patch32/resolve/main/onnx/model_quantized.onnx",
+    "https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/model.onnx",
+    "https://hf-mirror.com/Xenova/clip-vit-base-patch32/resolve/main/onnx/model.onnx",
 ];
 const TOKENIZER_URLS: &[&str] = &[
     "https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/tokenizer.json",
@@ -71,7 +71,7 @@ pub fn download_progress_text() -> String {
 }
 
 fn model_path(dir: &Path) -> PathBuf {
-    dir.join("clip-vit-b32-q8.onnx")
+    dir.join("clip-vit-b32-fp32.onnx")
 }
 fn tokenizer_path(dir: &Path) -> PathBuf {
     dir.join("clip-vit-b32-tokenizer.json")
@@ -82,7 +82,7 @@ pub fn ensure_models(progress: &dyn Fn(&str)) -> Result<usize, String> {
     let dir = models_dir()?;
     let mut downloaded = 0;
     for (path, urls, label) in [
-        (model_path(&dir), MODEL_URLS, "CLIP 模型（int8 量化）"),
+        (model_path(&dir), MODEL_URLS, "CLIP 模型（fp32，605 MB）"),
         (tokenizer_path(&dir), TOKENIZER_URLS, "CLIP 分词器"),
     ] {
         if path.is_file() && std::fs::metadata(&path).map(|m| m.len() > 0).unwrap_or(false) {
@@ -116,7 +116,7 @@ pub fn ensure_models(progress: &dyn Fn(&str)) -> Result<usize, String> {
     Ok(downloaded)
 }
 
-fn download_to(url: &str, dest: &Path, progress: &dyn Fn(f32)) -> Result<(), String> {
+pub fn download_to(url: &str, dest: &Path, progress: &dyn Fn(f32)) -> Result<(), String> {
     let client = reqwest::blocking::Client::builder()
         .timeout(std::time::Duration::from_secs(120))
         .connect_timeout(std::time::Duration::from_secs(15))

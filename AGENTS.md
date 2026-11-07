@@ -27,6 +27,27 @@
 
 **以上命令以本表为准。** 表里没有的，先问，不要自己发明（尤其不要 `pnpm install`，装出来的 electron/tauri 依赖版本可能对不上）。
 
+## 设计规范（强制，做任何界面之前先读）
+
+**完整契约：`docs/DESIGN.md`；令牌：`assets/tokens.css`（沿用 OpenFlow 家族 v6 终版，不要改值）。**
+
+四条不可协商：
+
+1. **颜色只从 token 来。** 零 hex、零 rgb、零 Tailwind 类；派生用 `color-mix(in oklab, …)`。
+2. **图标只有一种**：24×24 线框 SVG，`stroke-width:1.8`，`currentColor`。**不直出 emoji**。
+3. **三档降档**：≤1080 / ≤860 / ≤640，亮暗两套各看一遍。
+4. **零件不自造**：先在 `docs/DESIGN.md` 的 archetype 表里找；找不到才新增，且先留在页面 `<style>`。
+
+提交前跑这三条自检，全 0 才算过：
+
+```bash
+grep -nE '#[0-9a-fA-F]{3,8}\b' index.html assets/*.css && echo "✗ 有 hex" || echo "✓"
+grep -nE '\brgba?\(' index.html assets/*.css && echo "✗ 有 rgb" || echo "✓"
+grep -oE '@media\(max-width:([0-9]+)px\)' index.html | sort -u   # 应见 1080 860 640
+```
+
+**`--faint` 别乱改**：亮色 51% L / 暗色 64% L 是为了正文级小字过 WCAG AA（实测 5.20:1 与 5.49:1）。暗色若沿用亮色那档会掉到 3 出头。
+
 ## 目录禁忌
 
 | 路径 | 规则 |

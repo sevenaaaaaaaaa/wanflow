@@ -94,6 +94,29 @@ pub fn init(db_path: &Path) -> Result<Connection, rusqlite::Error> {
             score REAL,
             PRIMARY KEY (album_id, media_id)
         );
+
+        CREATE TABLE IF NOT EXISTS persons(
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            is_family INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS faces(
+            id INTEGER PRIMARY KEY,
+            media_id INTEGER NOT NULL REFERENCES media(id),
+            person_id INTEGER REFERENCES persons(id),
+            cluster INTEGER,
+            x REAL NOT NULL,
+            y REAL NOT NULL,
+            w REAL NOT NULL,
+            h REAL NOT NULL,
+            score REAL NOT NULL,
+            emb BLOB NOT NULL,
+            emb_model TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_faces_media ON faces(media_id);
+        CREATE INDEX IF NOT EXISTS idx_faces_cluster ON faces(cluster);
     ",
     )?;
     ensure_columns(&conn)?;
@@ -118,6 +141,7 @@ fn ensure_columns(conn: &Connection) -> Result<(), rusqlite::Error> {
         ("burst_group", "ALTER TABLE media ADD COLUMN burst_group INTEGER"),
         ("burst_best", "ALTER TABLE media ADD COLUMN burst_best INTEGER"),
         ("source_id", "ALTER TABLE media ADD COLUMN source_id INTEGER"),
+        ("face_count", "ALTER TABLE media ADD COLUMN face_count INTEGER"),
         ("emb", "ALTER TABLE media ADD COLUMN emb BLOB"),
         ("emb_model", "ALTER TABLE media ADD COLUMN emb_model TEXT"),
         ("scene_group", "ALTER TABLE media ADD COLUMN scene_group INTEGER"),
