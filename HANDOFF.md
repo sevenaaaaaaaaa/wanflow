@@ -548,3 +548,22 @@ sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
 **别踩**
 - 以后再改版本号：**只改 package.json + tauri.conf.json + Cargo.toml 三处**，界面会自己跟上（0.2.0 前不是这样）。
 - `src/env.d.ts` 不能删，删了 `__APP_VERSION__` 会变成未声明全局。
+
+---
+
+## 2026-11-07 22:20 · DSH / lead · 开发机（macOS）
+
+**做到哪**：按用户要求同步远端。`git fetch --prune` 拿到标签 v0.1.0 / v0.2.0 / v0.2.1，`main` 从 ac6b71c 快进到 34e9a95（44 个提交，+7319/−618）。同步前工作区有 21 处未提交改动（12 个已跟踪修改 + 9 个未跟踪文件/目录：faces.rs / family.rs / chat.rs / FamilyPanel.vue / agent_e2e.rs / face_e2e.rs / family_bench.rs / assets/ / docs/DESIGN.md，10-25~10-29 期间其他 agent 遗留），已整体 `git stash push -u` 存为 stash@{0}，一个字节未丢。
+
+**为什么停**：同步完成。这批 WIP（family/faces/chat 功能线，基线是旧的 ac6b71c）是否恢复到 v0.2.1 新基线上，等用户决定。
+
+**下一个动作**：`npm install`（package-lock 随 0.2.0/0.2.1 有锁定提交，node_modules 可能落后），然后 `npm run tauri dev` 验证 0.2.1。
+
+**别踩**：
+- faces.rs / family.rs / chat.rs 等**没有丢**，在 stash@{0}；恢复用 `git stash pop`（先 `git stash show -p stash@{0}` 过目）。
+- 恢复时 9 个文件（App.vue、api.ts、SmartPanel.vue、lib.rs、db.rs、clip.rs、smart.rs、commands.rs、embed_bench.rs）远端同样改过，大概率要解决冲突，pop 后别直接当能编译。
+- stash 里的 `assets/tokens.css`、`docs/DESIGN.md` 是旧设计草案；现行口径是 `design-system/wanflow/MASTER.md` + `src/tokens.css`，恢复时别两套混用。
+
+**验证方式**：`git log --oneline -1` 应为 34e9a95；`git status --short` 只应有 STATE.md / HANDOFF.md；`git stash list` 应有 1 条。
+
+**未提交的改动**：STATE.md、HANDOFF.md（本条收工记录，如需入库走 `docs:` 提交）。

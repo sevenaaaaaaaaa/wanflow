@@ -3,7 +3,7 @@
 > 规则：只写"现在的真实情况"，不写历史。历史进 `HANDOFF.md`。
 > 每次收工前更新三处：版本、进行中、下一步。旧内容删掉，不要堆积。
 
-**最后更新**：2026-11-06 · 更新人：DSH / lead · 设备：开发机（macOS）
+**最后更新**：2026-11-07 · 更新人：DSH / lead · 设备：开发机（macOS）
 
 ## 一句话现状
 
@@ -23,6 +23,7 @@ v0.2.1（2026-11-07 已发版：GitHub Release 提供 arm64 dmg，未签名/未�
 | 场景聚类 | 引擎 a056b65 + UI 2893e41 已提交；真实库已下 CLIP 模型并嵌入 30/30、重建 30 场（二次 rebuild `changed=0`）；校准工具 21f4bb9 | 真实库 30 张是彼此无关的风景照，**没有同场景多拍**，跨设备合并率只能用代理变体测（0.82 时 85.6%、误并 0）；需要真实家庭照片定稿 | DSH / lead |
 | 视觉扁平化 | 52ac1c5 已提交（`npm run build` 通过 + 浏览器截图核对），等用户试用 | 需 `npm run tauri dev` 在真实照片下看三处：相纸白平衡、悬浮层分界、11px 小字 | DSH / lead |
 | 设计系统接入 | 已发版 0.2.0：浅色默认 + 暖纸/青；`design-system/wanflow/MASTER.md` 为唯一口径 | 真实照片下看青强调是否太亮、浅色下相纸与底色的分层是否够 | DSH / lead |
+| 本地未提交 WIP（faces / family / chat / 事件回传，10-25~10-29 其他 agent 遗留，9 天未动） | 已 `git stash push -u` 暂存为 stash@{0}（含 assets/、docs/DESIGN.md 等未跟踪文件），仓库已同步 v0.2.1 | 恢复需合并到新基线：9 个文件（App.vue、api.ts、SmartPanel.vue、lib.rs、db.rs、clip.rs、smart.rs、commands.rs、embed_bench.rs）远端也改过，可能冲突；去留等用户决定 | DSH / lead（2026-11-07 暂存） |
 
 ## 下一步（按先后顺序）
 
@@ -53,6 +54,7 @@ v0.2.1（2026-11-07 已发版：GitHub Release 提供 arm64 dmg，未签名/未�
 
 | 日期 | 做了什么 | 回滚方式 |
 |---|---|---|
+| 2026-11-07 | 同步远端：main ac6b71c → 34e9a95（44 提交），拿到 tag v0.1.0/v0.2.0/v0.2.1；本地 21 处未提交改动 stash 暂存 | 恢复暂存：`git stash pop`；版本回退：`git reset --hard ac6b71c` |
 | 2026-11-07 | `chore`: 发版 v0.2.1（版本号跟随安装包；dmg 16.97 MiB，sha256 `c86095f8…`）— c7997b7 / 1ee03e7 / tag v0.2.1 | 发新版本修，**不删 tag** |
 | 2026-11-07 | `chore`: 发版 v0.2.0（浅色默认 + 新视觉，dmg 16.97 MiB，sha256 `91320c7d…`）— 80a7bc6 / 03d1788 / tag v0.2.0 | 发新版本修，**不删 tag** |
 | 2026-11-06 | `feat`: 接入 ui-ux-pro-max 设计系统（暖纸底 + 中性石墨 + calm teal；投影只回浮层）— 057fe6d / 8dd750b | `git revert 8dd750b 057fe6d` |
