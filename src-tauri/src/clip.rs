@@ -150,7 +150,6 @@ trait ReadToEndSafe {
 }
 impl ReadToEndSafe for reqwest::blocking::Response {
     fn read_to_end_safe(&mut self, buf: &mut [u8]) -> Result<usize, String> {
-        use std::io::Read;
         std::io::Read::read(self, buf).map_err(|e| e.to_string())
     }
 }
