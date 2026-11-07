@@ -173,8 +173,11 @@ kbd {
 }
 
 .topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   height: var(--chrome-h);
-  flex: none;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -183,7 +186,26 @@ kbd {
   border-bottom: 0.5px solid var(--border-1);
   z-index: var(--z-chrome);
   -webkit-app-region: drag;
+  transform: translateY(calc(-1 * var(--chrome-h) - 2px));
+  opacity: 0;
+  pointer-events: none;
+  transition: transform .18s ease, opacity .18s ease;
 }
+.topbar.is-shown {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+/* 顶边热区：鼠标碰到屏幕顶边即唤起工具条（只在有库/扫描时存在） */
+.topbar-hot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  z-index: calc(var(--z-chrome) + 1);
+}
+.topbar .icon-only { padding: 0 9px; }
 .topbar button, .topbar .seg, .topbar select, .topbar input, .topbar .chip { -webkit-app-region: no-drag; }
 
 .brand {

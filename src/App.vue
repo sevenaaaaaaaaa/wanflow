@@ -391,6 +391,7 @@ const commands = computed<Cmd[]>(() => {
     { id: "analyze", group: "导入与分析", label: analyze.value.running ? "质量分析（进行中…）" : "重新做质量分析", run: runAnalyze },
     { id: "suggest", group: "导入与分析", label: `智能初筛${suggestionCount.value ? `（${suggestionCount.value} 条建议）` : ""}`, run: openSuggestions },
     { id: "smart", group: "导入与分析", label: "智能精选…", run: () => (showSmart.value = true) },
+    { id: "family", group: "导入与分析", label: "家人与面孔…", run: () => (showFamily.value = true) },
     { id: "time", group: "整理", label: "修正拍摄时间…", hint: sel.length ? `${sel.length} 张` : "", run: () => (showTimeModal.value = true) },
     { id: "dup", group: "整理", label: dupOnly.value ? "显示全部（不限重复组）" : "只看重复组", run: () => { dupOnly.value = !dupOnly.value; refresh(); } },
     { id: "export", group: "输出", label: "导出精选集…", kbd: "⌘E", hint: sel.length ? `${sel.length} 张选中` : "按范围", run: () => (showExport.value = true) },
@@ -413,6 +414,8 @@ onMounted(async () => {
   const savedView = localStorage.getItem("wanflow-view");
   if (savedView === "story" || savedView === "grid") view.value = savedView;
   applyTheme();
+  // 首屏短暂露出工具条：让它被看见一次，然后自己隐入纸面
+  window.setTimeout(() => { if (!topbarTouched) topbarHovered.value = false; }, 1800);
 
   document.addEventListener("keydown", onKey);
   try {
@@ -443,6 +446,7 @@ onMounted(async () => {
   if (s.running) { scan.value = s; pollScan(); }
 });
 onUnmounted(() => {
+  if (topbarTimer) window.clearTimeout(topbarTimer);
   document.removeEventListener("keydown", onKey);
   unlisteners.forEach((u) => u());
   if (scanTimer) window.clearInterval(scanTimer);
@@ -452,12 +456,35 @@ const progressPct = computed(() =>
   scan.value.total > 0 ? Math.round((scan.value.done / scan.value.total) * 100) : 0,
 );
 
+// —— 顶栏：默认隐入纸面；顶边悬停 / 网格视图 / 任务进行中时浮出 ——
+const topbarHovered = ref(true);
+let topbarTimer: number | null = null;
+let topbarTouched = false;
+const topbarBusy = computed(() => scan.running || analyze.running || progressPct.value > 0);
+const topbarShown = computed(() => topbarHovered.value || topbarBusy.value || view.value === "grid");
+function topbarEnter() {
+  topbarTouched = true;
+  if (topbarTimer) { window.clearTimeout(topbarTimer); topbarTimer = null; }
+  topbarHovered.value = true;
+}
+function topbarLeave() {
+  if (topbarTimer) window.clearTimeout(topbarTimer);
+  topbarTimer = window.setTimeout(() => { topbarHovered.value = false; }, 500);
+}
+
 </script>
 
 <template>
   <div class="app-shell">
-    <!-- 顶栏：品牌 · 筛选 · 排序 · 动作 -->
-    <div class="topbar" v-if="hasLibrary || scan.running">
+    <!-- 顶栏：默认隐入纸面；鼠标碰到顶边 / 切网格 / 任务进行时浮出 -->
+    <div class="topbar-hot" v-if="hasLibrary || scan.running" @mouseenter="topbarEnter"></div>
+    <div
+      class="topbar"
+      :class="{ 'is-shown': topbarShown }"
+      v-if="hasLibrary || scan.running"
+      @mouseenter="topbarEnter"
+      @mouseleave="topbarLeave"
+    >
       <span class="brand">Wan<em>Flow</em></span>
       <button
         class="continue-btn"
@@ -510,17 +537,17 @@ const progressPct = computed(() =>
       <button class="icon-btn" title="怎么用（?）" @click="startTour">
         <Icon name="help" />
       </button>
-      <button class="ghost" @click="runAnalyze" :disabled="analyze.running" title="质量分析">
-        <Icon name="flame" /> {{ analyze.running ? "分析中…" : "分析" }}
+      <button class="ghost icon-only" @click="runAnalyze" :disabled="analyze.running" :title="analyze.running ? '质量分析进行中…' : '质量分析（逐个分析全库）'">
+        <Icon name="flame" />
       </button>
-      <button class="ghost" @click="showSmart = true" title="智能精选">
-        <Icon name="sparkle" /> 精选
+      <button class="ghost icon-only" @click="showSmart = true" title="智能精选：语义搜索 · 智能挑图">
+        <Icon name="sparkle" />
       </button>
-      <button class="ghost" @click="showFamily = true" title="家人">
-        <Icon name="users" /> 家人
+      <button class="ghost icon-only" @click="showFamily = true" title="家人：面孔聚类与按人筛选">
+        <Icon name="users" />
       </button>
-      <button class="primary" @click="showImport = true" :disabled="scan.running">
-        <Icon name="folder" /> {{ scan.running ? "导入中…" : "导入" }}
+      <button class="primary icon-only" @click="showImport = true" :disabled="scan.running" :title="scan.running ? '导入中…' : '导入照片/视频（⌘I）'">
+        <Icon name="folder" />
       </button>
       <button class="icon-btn" title="命令面板 ⌘K" @click="paletteOpen = true">
         <Icon name="command" />
