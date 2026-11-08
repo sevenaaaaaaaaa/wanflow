@@ -1281,7 +1281,7 @@ defineExpose({ startTour });
   flex-direction: column;
   gap: 14px;
   min-height: 0;
-  animation: dayIn var(--dur-4) var(--ease-spring) both;
+  animation: dayIn var(--dur-4) var(--ease-out) both;
 }
 .page-area {
   flex: 1;
@@ -1393,7 +1393,7 @@ defineExpose({ startTour });
   box-shadow: 0 0 0 .5px var(--paper-edge), var(--shadow-2);
   display: flex;
   flex-direction: column;
-  transition: transform var(--dur-4) var(--ease-spring), box-shadow var(--dur-4) var(--ease-out);
+  transition: transform var(--dur-4) var(--ease-out), box-shadow var(--dur-4) var(--ease-out);
 }
 /* 四角印刷角标：只在相纸留白里，不压照片 */
 .spread::before {
@@ -1430,12 +1430,12 @@ defineExpose({ startTour });
   font-size: var(--fs-2);
   font-weight: 500;
   pointer-events: none;
-  animation: toastIn var(--dur-2) var(--ease-spring);
+  animation: toastIn var(--dur-2) var(--ease-out);
 }
 .spread.leaving {
   pointer-events: none;
   opacity: 0;
-  transform: translateY(-5px) scale(.992);
+  transform: translateY(-2px);
   transition:
     transform 220ms var(--ease-out),
     opacity 200ms var(--ease-out);
@@ -1513,7 +1513,7 @@ defineExpose({ startTour });
   font-weight: 500;
   opacity: 0;
   transform: translateY(5px);
-  transition: opacity var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-spring), background var(--dur-2) var(--ease-out);
+  transition: opacity var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out), background var(--dur-2) var(--ease-out);
 }
 .slot:hover .slot-swap, .slot-swap:focus-visible { opacity: 1; transform: translateY(0); }
 .slot-swap:hover { background: var(--danger); }
@@ -1539,11 +1539,11 @@ defineExpose({ startTour });
 }
 .folio { font-family: var(--font-mono); font-size: 11px; letter-spacing: .14em; color: var(--paper-ink-2); }
 
-.slot-enter-active { transition: opacity var(--dur-3) var(--ease-out), transform var(--dur-4) var(--ease-spring); transition-delay: calc(var(--i, 0) * 30ms); }
+.slot-enter-active { transition: opacity var(--dur-3) var(--ease-out), transform var(--dur-4) var(--ease-out); transition-delay: calc(var(--i, 0) * 30ms); }
 .slot-leave-active { transition: opacity var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out); position: absolute; }
-.slot-enter-from { opacity: 0; transform: scale(.94) translateY(10px); }
-.slot-leave-to { opacity: 0; transform: scale(.96); }
-.slot-move { transition: transform var(--dur-4) var(--ease-spring); }
+.slot-enter-from { opacity: 0; transform: translateY(4px); }
+.slot-leave-to { opacity: 0; }
+.slot-move { transition: transform var(--dur-4) var(--ease-out); }
 
 .compose {
   display: flex;
@@ -1560,10 +1560,10 @@ defineExpose({ startTour });
   color: var(--text-1);
   font-variant-numeric: lining-nums tabular-nums;
   min-width: 30px;
-  animation: numIn 260ms var(--ease-spring) both;
+  animation: numIn 260ms var(--ease-out) both;
 }
 @keyframes numIn {
-  from { opacity: 0; transform: translateY(5px) scale(.96); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
 .cc-text { display: flex; flex-direction: column; gap: 4px; }
@@ -1616,7 +1616,7 @@ defineExpose({ startTour });
   margin-left: -2px;
   border-radius: 50%;
   background: var(--border-2);
-  transition: background var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-spring), box-shadow var(--dur-2) var(--ease-out);
+  transition: background var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
 }
 .ticks button:hover { color: var(--text-1); }
 .ticks button:hover i { background: var(--text-3); }
@@ -1715,7 +1715,7 @@ defineExpose({ startTour });
   opacity: .58;
   transform: translateY(0);
   box-shadow: 0 0 0 .5px oklch(100% 0 0 / .07);
-  transition: opacity var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-spring), box-shadow var(--dur-2) var(--ease-out);
+  transition: opacity var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
 }
 .frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .frame:hover { opacity: 1; transform: translateY(-2px); }
@@ -1856,7 +1856,7 @@ defineExpose({ startTour });
   box-shadow: 0 0 0 .5px var(--paper-edge);
   animation: pageIn 300ms var(--ease-out) both;
   /* 一叠相纸：交替微小偏转，hover 时回正抬起 */
-  transition: transform var(--dur-2) var(--ease-spring), box-shadow var(--dur-2) var(--ease-out);
+  transition: transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
 }
 .mini:nth-child(odd) { transform: rotate(-.5deg); }
 .mini:nth-child(even) { transform: rotate(.42deg); }
@@ -1908,7 +1908,7 @@ defineExpose({ startTour });
   justify-items: center;
   gap: 10px;
   text-align: center;
-  animation: dayIn var(--dur-5) var(--ease-spring) both;
+  animation: dayIn var(--dur-5) var(--ease-out) both;
 }
 .done-mark {
   width: 54px;

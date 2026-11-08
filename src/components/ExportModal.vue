@@ -197,7 +197,7 @@ onUnmounted(() => unlisteners.forEach(u => u()));
           <span class="hint">剥离与改写只对 JPEG 生效；HEIC/PNG/视频一律原样复制。</span>
         </div>
 
-        <p v-if="error" style="color: #fca5a5; margin-bottom: 12px">{{ error }}</p>
+        <p v-if="error" style="color: var(--danger-ink); margin-bottom: 12px">{{ error }}</p>
 
         <div class="form-row">
           <button :disabled="!opts || previewing || running" @click="preview">

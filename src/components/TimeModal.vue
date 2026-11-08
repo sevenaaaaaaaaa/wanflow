@@ -103,7 +103,7 @@ async function apply() {
           </span>
         </div>
 
-        <p v-if="error" style="color: #fca5a5; margin-bottom: 12px">{{ error }}</p>
+        <p v-if="error" style="color: var(--danger-ink); margin-bottom: 12px">{{ error }}</p>
 
         <div class="form-row">
           <button :disabled="!spec || previewing" @click="preview">

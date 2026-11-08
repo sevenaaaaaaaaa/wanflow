@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import Icon from "./Icon.vue";
 import { api, fmtTime, thumbUrl, type AlbumItem, type AiStatus, type ScoredMedia } from "../api";
 
 const emit = defineEmits<{ close: []; refresh: [] }>();
@@ -160,7 +161,7 @@ async function removeAlbum(id: number) {
   <div class="modal-mask" @mousedown.self="$emit('close')">
     <div class="modal" style="width: min(920px, 94vw)">
       <header>
-        ✨ 智能精选
+        <Icon name="sparkle" :size="13" /> 智能精选
         <span class="chip">{{ status?.embCount ?? 0 }}/{{ status?.imageCount ?? 0 }} 已索引</span>
         <span class="chip" :title="status?.ollamaModels.join('、')">
           Ollama {{ status?.ollamaReady ? "已检测到" : "未安装（可选）" }}
@@ -188,12 +189,12 @@ async function removeAlbum(id: number) {
         <p v-if="error" class="import-error">{{ error }}</p>
 
         <div class="import-tabs" style="margin-top: 10px">
-          <button :class="{ on: tab === 'search' }" @click="tab = 'search'">🔍 语义搜索</button>
-          <button :class="{ on: tab === 'select' }" @click="tab = 'select'">🪄 智能精选</button>
+          <button :class="{ on: tab === 'search' }" @click="tab = 'search'"><Icon name="search" :size="12" /> 语义搜索</button>
+          <button :class="{ on: tab === 'select' }" @click="tab = 'select'"><Icon name="sparkle" :size="12" /> 智能精选</button>
           <button :class="{ on: tab === 'albums' }" @click="tab = 'albums'; refreshAlbums()">
-            📔 精选集 ({{ albums.length }})
+            <Icon name="album" :size="12" /> 精选集 ({{ albums.length }})
           </button>
-          <button :class="{ on: tab === 'agent' }" @click="tab = 'agent'">🤖 对话选片</button>
+          <button :class="{ on: tab === 'agent' }" @click="tab = 'agent'"><Icon name="chat" :size="12" /> 对话选片</button>
         </div>
 
         <!-- 语义搜索 -->
@@ -242,7 +243,7 @@ async function removeAlbum(id: number) {
           <div v-if="selectResults.length > 0" class="form-row" style="margin-top: 14px">
             <input v-model="selectAlbumName" placeholder="精选集名字" style="flex: 1" />
             <button class="primary" @click="saveAlbum">
-              {{ albumSaved ? "✓ 已保存" : "存为精选集" }}
+              <Icon v-if="albumSaved" name="check" :size="12" /> {{ albumSaved ? "已保存" : "存为精选集" }}
             </button>
           </div>
         </div>
@@ -261,7 +262,7 @@ async function removeAlbum(id: number) {
             </button>
           </div>
           <p v-if="agentResult" class="hint" style="margin: 6px 0">
-            💡 {{ agentResult.reason }}（{{ agentResult.model }} 本地推理）
+            <Icon name="bulb" :size="12" /> {{ agentResult.reason }}（{{ agentResult.model }} 本地推理）
           </p>
           <div class="result-grid">
             <div v-for="(m, i) in agentResult?.items ?? []" :key="m.id" class="result-card">
@@ -280,7 +281,7 @@ async function removeAlbum(id: number) {
             <span class="hint">{{ fmtTime(a.createdAt) }}</span>
             <span class="spacer"></span>
             <button style="padding: 4px 10px" @click="openAlbumDetail(a)">查看</button>
-            <button style="padding: 4px 10px; color: #fca5a5" @click="removeAlbum(a.id)">删除</button>
+            <button style="padding: 4px 10px; color: var(--danger-ink)" @click="removeAlbum(a.id)">删除</button>
           </div>
         </div>
       </div>
@@ -312,7 +313,7 @@ async function removeAlbum(id: number) {
   display: flex;
   align-items: center;
   gap: 14px;
-  color: var(--muted);
+  color: var(--text-3);
   font-size: 13px;
 }
 .ai-ready p { flex: 1; line-height: 1.6; }
@@ -329,7 +330,7 @@ async function removeAlbum(id: number) {
   position: relative;
   border-radius: 10px;
   overflow: hidden;
-  background: var(--bg3);
+  background: var(--surface-2);
   aspect-ratio: 1;
 }
 .result-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -359,7 +360,7 @@ async function removeAlbum(id: number) {
   place-items: center;
 }
 .album-detail {
-  border-top: 0.5px solid var(--line);
+  border-top: 0.5px solid var(--border-1);
   padding: 12px 18px 16px;
   max-height: 40vh;
   overflow-y: auto;

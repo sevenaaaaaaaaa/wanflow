@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from "vue";
+import Icon from "./Icon.vue";
 import { api, thumbUrl, type ClusterItem, type FamilyIndexSummary, type FamilyMember } from "../api";
 
 const emit = defineEmits<{ close: []; refresh: [] }>();
@@ -109,12 +110,12 @@ async function removeMember(personId: number) {
 <template>
   <div class="dup-panel" style="width: 440px">
     <header>
-      👨‍👩‍👧 家人
+      <Icon name="users" :size="13" /> 家人
       <span class="spacer"></span>
       <button @click="$emit('close')">✕</button>
     </header>
 
-    <div style="padding: 12px 14px; border-bottom: 1px solid var(--line)">
+    <div style="padding: 12px 14px; border-bottom: 1px solid var(--border-1)">
       <p v-if="error" class="import-error">{{ error }}</p>
       <p v-if="progressMsg" class="ai-progress">⏳ {{ progressMsg }}</p>
 
@@ -125,7 +126,7 @@ async function removeMember(personId: number) {
           <b>{{ m.name }}</b>
           <span class="hint">{{ m.photoCount }} 张照片</span>
           <span class="spacer"></span>
-          <button style="padding: 3px 8px; color: #fca5a5" @click="removeMember(m.id)">取消</button>
+          <button style="padding: 3px 8px; color: var(--danger-ink)" @click="removeMember(m.id)">取消</button>
         </div>
       </div>
 

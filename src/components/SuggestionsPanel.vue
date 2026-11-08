@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import Icon from "./Icon.vue";
 import { api, thumbUrl, type SuggestionItem, type SuggestionRule } from "../api";
 
 const props = defineProps<{ items: SuggestionItem[] }>();
 const emit = defineEmits<{ close: []; applied: [label: string]; refresh: [] }>();
 
 const RULE_META: Record<SuggestionRule, { title: string; desc: string; icon: string }> = {
-  blur: { title: "画面模糊", desc: "清晰度明显低于正常水平", icon: "🌫️" },
-  exposure: { title: "曝光失误", desc: "严重过曝或欠曝，画面看不清", icon: " expose " },
-  burst: { title: "连拍多余", desc: "连拍中已自动选出最佳，其余为候选淘汰", icon: "📸" },
+  blur: { title: "画面模糊", desc: "清晰度明显低于正常水平", icon: "blur" },
+  exposure: { title: "曝光失误", desc: "严重过曝或欠曝，画面看不清", icon: "exposure" },
+  burst: { title: "连拍多余", desc: "连拍中已自动选出最佳，其余为候选淘汰", icon: "camera" },
 };
 
 const byRule = computed(() => {
@@ -22,7 +23,7 @@ const byRule = computed(() => {
 const checked = ref<Set<number>>(new Set(props.items.map(i => i.id)));
 
 function ruleMeta(rule: SuggestionRule) {
-  return RULE_META[rule] ?? { title: rule, desc: "", icon: "❓" };
+  return RULE_META[rule] ?? { title: rule, desc: "", icon: "help" };
 }
 
 function toggle(id: number) {
@@ -50,7 +51,7 @@ async function resolve(apply: boolean) {
 <template>
   <div class="dup-panel" style="width: 430px">
     <header>
-      🤖 智能初筛 · {{ items.length }} 条建议
+      <Icon name="sparkle" :size="13" /> 智能初筛 · {{ items.length }} 条建议
       <span class="spacer"></span>
       <button @click="$emit('close')">✕</button>
     </header>
@@ -60,7 +61,7 @@ async function resolve(apply: boolean) {
       </p>
       <div v-for="(list, rule) in byRule" :key="rule" class="rule-block">
         <div class="rule-head">
-          <span>{{ ruleMeta(rule).icon }}</span>
+          <Icon :name="ruleMeta(rule).icon" :size="14" />
           <b>{{ ruleMeta(rule).title }}</b>
           <span class="hint">{{ list.length }} 张 · {{ ruleMeta(rule).desc }}</span>
         </div>
@@ -79,7 +80,7 @@ async function resolve(apply: boolean) {
           <img v-if="it.thumb" :src="thumbUrl({ thumb: it.thumb } as any)" style="cursor: pointer" @click="toggle(it.id)" />
           <div class="info">
             <b :title="it.filename">{{ it.filename }}</b>
-            <span style="color: #fca5a5">{{ it.reason }}</span>
+            <span style="color: var(--danger-ink)">{{ it.reason }}</span>
           </div>
         </div>
         <div class="rule-actions">
@@ -89,7 +90,7 @@ async function resolve(apply: boolean) {
       </div>
       <p v-if="items.length === 0" class="hint">暂无建议——先跑一次"质量分析"</p>
     </div>
-    <div style="padding: 10px 14px; border-top: 0.5px solid var(--line); display: flex; gap: 8px; align-items: center">
+    <div style="padding: 10px 14px; border-top: 0.5px solid var(--border-1); display: flex; gap: 8px; align-items: center">
       <button class="primary" :disabled="checked.size === 0" @click="resolve(true)">
         应用选中的 {{ checked.size }} 条
       </button>
