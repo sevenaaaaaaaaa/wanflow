@@ -486,16 +486,6 @@ function topbarLeave() {
       @mouseleave="topbarLeave"
     >
       <span class="brand">Wan<em>Flow</em></span>
-      <button
-        class="continue-btn"
-        :class="{ done: !(stats?.unreviewed ?? 0) }"
-        @click="continueReview"
-        :title="(stats?.unreviewed ?? 0) ? '回到故事线，继续没挑完的这一天' : '都挑完了，去精选'"
-      >
-        <span class="dot"></span>
-        <span class="t">{{ (stats?.unreviewed ?? 0) ? "继续整理" : "去精选" }}</span>
-        <b v-if="stats?.unreviewed">{{ stats.unreviewed }}</b>
-      </button>
       <span class="chip">{{ stats?.total ?? 0 }} 张 · {{ fmtBytes(stats?.bytes ?? 0) }}</span>
 
       <div class="seg" role="tablist" aria-label="视图">
@@ -574,10 +564,12 @@ function topbarLeave() {
       v-else-if="view === 'story'"
       ref="storyRef"
       :revision="revision"
+      :unreviewed="stats?.unreviewed ?? 0"
       @changed="onDeveloped"
       @toast="showToast"
       @grid="setView('grid')"
       @export="showExport = true"
+      @continue="continueReview"
     />
     <PhotoGrid
       v-else

@@ -3,12 +3,13 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { api, thumbUrl, type MediaItem, type Stats } from "../api";
 import Icon from "./Icon.vue";
 
-const props = defineProps<{ revision: number }>();
+const props = defineProps<{ revision: number; unreviewed?: number }>();
 const emit = defineEmits<{
   changed: [payload: { label: string; steps: number }];
   toast: [text: string];
   grid: [];
   export: [];
+  continue: [];
 }>();
 
 type GroupMode = "day" | "event" | "scene";
@@ -789,6 +790,16 @@ defineExpose({ startTour });
           <span class="tl-kicker">待挑</span>
           <span class="tl-count">{{ days.length }} {{ groupUnit }}</span>
         </div>
+        <button
+          class="tl-continue"
+          :class="{ done: !(props.unreviewed ?? 0) }"
+          :title="(props.unreviewed ?? 0) ? '回到还没挑完的那一天' : '都挑完了，去精选'"
+          @click="emit('continue')"
+        >
+          <span class="tl-continue-dot"></span>
+          <span>{{ (props.unreviewed ?? 0) ? "继续整理" : "去精选" }}</span>
+          <b v-if="props.unreviewed">{{ props.unreviewed }}</b>
+        </button>
         <div class="group-switch" role="group" aria-label="成页方式">
           <button :class="{ on: groupMode === 'day' }" :aria-pressed="groupMode === 'day'" @click="setGroupMode('day')">按天</button>
           <button
@@ -839,6 +850,9 @@ defineExpose({ startTour });
       <main class="stage">
         <!-- 窄屏换天：时间轴收成一条可横滑的「日签」，功能不消失 -->
         <nav class="day-rail" aria-label="按页翻页">
+          <button class="rail-continue" :class="{ done: !(props.unreviewed ?? 0) }" @click="emit('continue')">
+            {{ (props.unreviewed ?? 0) ? `继续 ${props.unreviewed}` : "去精选" }}
+          </button>
           <div class="rail-switch" role="group" aria-label="成页方式">
             <button :class="{ on: groupMode === 'day' }" :aria-pressed="groupMode === 'day'" @click="setGroupMode('day')">按天</button>
             <button :class="{ on: groupMode === 'event' }" :aria-pressed="groupMode === 'event'" @click="setGroupMode('event')">按事件</button>
@@ -1087,6 +1101,39 @@ defineExpose({ startTour });
   font-weight: 500;
 }
 .tl-count { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+/* 左侧日期栏内的「继续整理」：quiet row，不再占顶栏 */
+.tl-continue {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: calc(100% - 20px);
+  margin: 9px 10px 0;
+  padding: 7px 10px;
+  border: 0.5px solid var(--border-1);
+  border-radius: 9px;
+  background: var(--surface-1);
+  color: var(--text-2);
+  font-size: var(--fs-2);
+  cursor: pointer;
+  text-align: left;
+}
+.tl-continue:hover { border-color: color-mix(in oklab, var(--accent) 45%, var(--border-1)); color: var(--text-1); }
+.tl-continue .tl-continue-dot { width: 6px; height: 6px; border-radius: 999px; background: var(--accent); flex: none; }
+.tl-continue b { margin-left: auto; font-family: var(--font-mono); font-size: var(--fs-1); color: var(--accent); font-weight: 500; font-variant-numeric: tabular-nums; }
+.tl-continue.done .tl-continue-dot { background: var(--text-4); }
+.rail-continue {
+  flex: none;
+  padding: 4px 10px;
+  border: 0.5px solid var(--border-1);
+  border-radius: 999px;
+  background: var(--surface-1);
+  color: var(--text-2);
+  font-size: var(--fs-1);
+  font-family: var(--font-mono);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rail-continue:hover { border-color: color-mix(in oklab, var(--accent) 45%, var(--border-1)); color: var(--text-1); }
 .group-switch {
   display: flex;
   gap: 2px;
