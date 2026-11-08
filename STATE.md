@@ -25,6 +25,7 @@ v0.2.1（2026-11-07 已发版：GitHub Release 提供 arm64 dmg，未签名/未�
 | 设计系统接入 | 已发版 0.2.0：浅色默认 + 暖纸/青；`design-system/wanflow/MASTER.md` 为唯一口径 | 真实照片下看青强调是否太亮、浅色下相纸与底色的分层是否够 | DSH / lead |
 | 家人 / 人脸 / AI 功能线（恢复合并） | 已合并到 v0.2.1 基线（3346fd4 快照 → a743b26 合并）；cargo test 54 绿、npm run build 通过；顶栏「家人」入口 + FamilyPanel 就位 | 需真机 `npm run tauri dev` 验收：人脸聚类质量、家人注册/按人筛选、AI 精选（agent_select 走 Ollama）；未发版 | DSH / lead（2026-11-07） |
 | 应用内检查更新 | 已实现并冒烟：⌘K「帮助 → 检查更新…」+ 欢迎页版本行入口；匿名调 GitHub Release 比对 `__APP_VERSION__`；截图 docs/shots/smoke-update-check.png | 真机验收；随下次发版生效 | DSH / lead（2026-11-07） |
+| 视觉审计整改（unslop × landing-page-design） | Top1-3 已完成（903a4fd）：面板 emoji→线框图标 13 处（新增 6 个图标）、非 token 色归位（#fca5a5→--danger-ink、#fff→--on-accent、Arena 旧主题迁移）、动效收敛（删弹簧/弹跳曲线、悬停位移 ≤2px、入场改淡入、--dur-2 对齐 200ms）；`npm run build` 通过 | Top4（间距/字号尺度化）与 Top5（演示样片假照片）未做，需单独排期 | DSH / lead（2026-11-09） |
 
 ## 下一步（按先后顺序）
 
@@ -56,6 +57,7 @@ v0.2.1（2026-11-07 已发版：GitHub Release 提供 arm64 dmg，未签名/未�
 | 日期 | 做了什么 | 回滚方式 |
 |---|---|---|
 | 2026-11-07 | `feat`: 恢复家人/人脸/AI 功能线并合并到 v0.2.1（faces/family/chat + FamilyPanel + AI 事件回传）— 3346fd4 / a743b26 | `git revert -m 1 a743b26`（去功能线、留 v0.2.1） |
+| 2026-11-09 | `refactor`: 审计整改 Top1-3（去 emoji 图标、颜色归位、动效收敛）— 903a4fd | `git revert 903a4fd` |
 | 2026-11-07 | `feat`: 应用内检查更新（⌘K + 欢迎页入口，GitHub Release 比对 + 下载地址复制）— e1de2cb / 2a398ef | `git revert e1de2cb 2a398ef` |
 | 2026-11-07 | 同步远端：main ac6b71c → 34e9a95（44 提交），拿到 tag v0.1.0/v0.2.0/v0.2.1；本地 21 处未提交改动 stash 暂存 | 恢复暂存：`git stash pop`；版本回退：`git reset --hard ac6b71c` |
 | 2026-11-07 | `chore`: 发版 v0.2.1（版本号跟随安装包；dmg 16.97 MiB，sha256 `c86095f8…`）— c7997b7 / 1ee03e7 / tag v0.2.1 | 发新版本修，**不删 tag** |
