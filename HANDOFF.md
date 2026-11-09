@@ -608,3 +608,26 @@ sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
 **验证方式**：\`npm run build\` 通过（1.09s）；残留扫描 0 处（ease-spring/ease-bounce/fca5a5/旧变量）；浏览器冒烟：智能面板与家人面板图标正常（截图 /tmp/unslop-audit/03-smartpanel.png、04-family.png）。
 
 **未提交的改动**：无（STATE/HANDOFF 随后随本条提交）。
+
+---
+
+## 2026-11-09 09:50 · DSH / lead · 开发机（macOS）
+
+**做到哪**：v0.2.2 收尾 + 打包 + 本地替换，提交 1a7a1d4。
+1) 上一轮漏网的两处 `⏳`（FamilyPanel:120、SmartPanel:188）改成 `<Icon name="time" :size="12" />`，动效保持静态（上一轮刚收敛，没加转圈）；
+2) `package.json` / `package-lock.json` / `src-tauri/tauri.conf.json` / `src-tauri/Cargo.toml` 四处置 0.2.2；
+3) release 构建出 `WanFlow.app`（48M，Info.plist 0.2.2）与 `WanFlow_0.2.2_aarch64.dmg`（18,845,063 B ≈ 18.0 MiB，`hdiutil verify` VALID，sha256 `f27d34bb603ac358c2546c050cd97957764fa417bd516bed319e43069abdb578`）；
+4) `/Applications/WanFlow.app` 先备份到 `/tmp/WanFlow-backup-0.2.1.app` 再替换，启动确认 0.2.2 在跑。
+
+**为什么停**：push 分支、合并 main、发 GitHub Release 三件事都要用户逐条点头（项目规矩），本轮只做到本机可运行。
+
+**下一个动作**：`git push -u origin crew/family-ai-update-check` → 合并 main → `git tag v0.2.2 && git push origin v0.2.2` → 用上面那个 dmg 发 Release。
+
+**别踩**：
+- `npm run tauri build` 的 dmg 步骤会挂死（bundle_dmg.sh 走 osascript 让 Finder 排版，无 GUI 权限时永久卡住，本次卡 70s+ 日志零增长）。kill 掉卡住的 osascript 后 `.app` 已在 `bundle/macos/`，用 `hdiutil create -volname WanFlow -srcfolder <WanFlow.app> -ov -format UDZO <out>.dmg` 兜底出包即可。
+- 上一轮的证据截图在 `/tmp/unslop-audit/`（01-default / 02-toolbar / 03-smartpanel / 04-family），属临时目录，要留档得自己搬进 `docs/shots/`。
+- 本机 System Events 读窗口数不可靠（本次 Finder 也返回 0），核窗口用 CoreGraphics：`CGWindowListCopyWindowInfo` 能看到 WanFlow 两个窗口（主窗 1360×860 onscreen）。
+
+**验证方式**：`npm run build` 1.50s / 56 modules；`grep -rn '⏳' src/` → 0；`hdiutil verify` → checksum VALID；`defaults read /Applications/WanFlow.app/Contents/Info.plist CFBundleShortVersionString` → 0.2.2。
+
+**未提交的改动**：无。
