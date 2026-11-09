@@ -504,7 +504,7 @@ function topbarLeave() {
 
       <span class="spacer"></span>
 
-      <label v-if="view === 'grid'" class="hint" style="display: flex; align-items: center; gap: 6px">
+      <label v-if="view === 'grid'" class="hint" style="display: flex; align-items: center; gap: var(--sp-6)">
         <input type="checkbox" v-model="dupOnly" @change="refresh" /> 仅重复组
       </label>
 
@@ -548,13 +548,13 @@ function topbarLeave() {
     <div class="scanbar" v-if="scan.running || progressPct > 0">
       <div :style="{ width: scan.running ? Math.max(progressPct, 2) + '%' : '100%' }"></div>
     </div>
-    <div class="hint" v-if="scan.running" style="padding: 5px 16px; font-family: var(--font-mono); font-size: var(--fs-1)">
+    <div class="hint" v-if="scan.running" style="padding: var(--sp-5) var(--sp-16); font-family: var(--font-mono); font-size: var(--fs-1)">
       {{ scan.phase }} · {{ scan.done }}/{{ scan.total }} · {{ scan.current }}
     </div>
     <div class="scanbar" v-if="analyze.running">
       <div style="width: 30%" class="analyze-anim"></div>
     </div>
-    <div class="hint" v-if="analyze.running" style="padding: 5px 16px; font-size: var(--fs-1)">
+    <div class="hint" v-if="analyze.running" style="padding: var(--sp-5) var(--sp-16); font-size: var(--fs-1)">
       {{ analyze.phase }} · {{ analyze.current }}
     </div>
 

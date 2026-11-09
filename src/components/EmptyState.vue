@@ -99,8 +99,8 @@ function reset() {
   flex: 1;
   display: grid;
   align-content: center;
-  gap: 34px;
-  padding: 34px 40px 40px;
+  gap: var(--sp-34);
+  padding: var(--sp-34) var(--sp-40) var(--sp-40);
   max-width: 1160px;
   width: 100%;
   margin: 0 auto;
@@ -109,7 +109,7 @@ function reset() {
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
-  gap: 56px;
+  gap: var(--sp-56);
   align-items: center;
 }
 .empty-head {
@@ -118,7 +118,7 @@ function reset() {
   left: 26px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--sp-10);
   z-index: 5;
 }
 .empty-head .brand { font-size: var(--fs-3); }
@@ -128,7 +128,7 @@ function reset() {
   letter-spacing: .04em;
   color: var(--text-4);
 }
-.empty-head .ver-wrap { display: inline-flex; align-items: baseline; gap: 10px; }
+.empty-head .ver-wrap { display: inline-flex; align-items: baseline; gap: var(--sp-10); }
 .empty-head .ver-btn {
   font-family: var(--font-mono);
   font-size: var(--fs-1);
@@ -144,7 +144,7 @@ function reset() {
 .eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-8);
   font-size: var(--fs-1);
   letter-spacing: .08em;
   text-transform: uppercase;
@@ -157,7 +157,7 @@ function reset() {
   background: var(--accent);
 }
 h1 {
-  margin: 16px 0 14px;
+  margin: var(--sp-16) 0 var(--sp-14);
   font-size: clamp(34px, 4.2vw, 52px);
   line-height: 1.12;
   letter-spacing: -.03em;
@@ -171,20 +171,20 @@ h1 em {
   color: var(--accent-ink);
 }
 .lede {
-  margin: 0 0 24px;
+  margin: 0 0 var(--sp-24);
   max-width: 30em;
   font-size: var(--fs-3);
   line-height: 1.75;
   color: var(--text-3);
 }
 .lede b { color: var(--text-1); font-weight: 500; }
-.doors { display: flex; flex-wrap: wrap; gap: 10px; }
+.doors { display: flex; flex-wrap: wrap; gap: var(--sp-10); }
 .door {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--sp-9);
   height: 44px;
-  padding: 0 16px;
+  padding: 0 var(--sp-16);
   border-radius: 10px;
   border: 0.5px solid var(--border-2);
   background: var(--surface-2);
@@ -205,7 +205,7 @@ h1 em {
   font-family: var(--font-mono);
   font-size: 11px;
   line-height: 1;
-  padding: 3px 5px;
+  padding: var(--sp-3) var(--sp-5);
   border-radius: 4px;
   background: oklch(0% 0 0 / .16);
   color: inherit;
@@ -216,7 +216,7 @@ h1 em {
   opacity: 1;
 }
 .fine {
-  margin: 16px 0 0;
+  margin: var(--sp-16) 0 0;
   font-size: var(--fs-1);
   line-height: 1.7;
   color: var(--text-4);
@@ -225,7 +225,7 @@ h1 em {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--sp-14);
   justify-self: end;
   width: 100%;
   max-width: 400px;
@@ -233,7 +233,7 @@ h1 em {
 .demo-tag {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--sp-7);
   align-self: flex-start;
   font-size: var(--fs-1);
   color: var(--text-4);
@@ -247,7 +247,7 @@ h1 em {
 }
 .paper {
   position: relative;
-  padding: 11px;
+  padding: var(--sp-11);
   border-radius: 3px;
   background: oklch(97% .012 95);
   color: oklch(30% .012 85);
@@ -255,7 +255,7 @@ h1 em {
 }
 .grid {
   display: grid;
-  gap: 4px;
+  gap: var(--sp-4);
   aspect-ratio: 4 / 3;
   width: 100%;
 }
@@ -303,8 +303,8 @@ h1 em {
 .paper-foot {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  padding: 9px 2px 2px;
+  gap: var(--sp-12);
+  padding: var(--sp-9) var(--sp-2) var(--sp-2);
   font-size: 11px;
   letter-spacing: .02em;
   color: oklch(48% .012 85);
@@ -325,8 +325,8 @@ h1 em {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 16px 28px 15px;
+  gap: var(--sp-3);
+  padding: var(--sp-16) var(--sp-28) var(--sp-15);
   border-radius: 4px;
   background: oklch(98.5% .008 95 / .97);
   box-shadow: 0 0 0 .5px oklch(30% .02 95 / .18);
@@ -334,7 +334,7 @@ h1 em {
 .stamp .ok {
   width: 28px;
   height: 28px;
-  margin-bottom: 4px;
+  margin-bottom: var(--sp-4);
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -344,9 +344,9 @@ h1 em {
 .shot b { font-size: 17px; font-weight: 500; letter-spacing: -.01em; color: oklch(30% .012 85); }
 .shot .stamp span { font-size: 11px; color: oklch(46% .012 85); }
 .shot button {
-  margin-top: 9px;
+  margin-top: var(--sp-9);
   height: 26px;
-  padding: 0 12px;
+  padding: 0 var(--sp-12);
   border-radius: 7px;
   border: 0.5px solid oklch(30% .02 95 / .18);
   background: oklch(98.5% .008 95 / .9);
@@ -359,11 +359,11 @@ h1 em {
 .ruler {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--sp-10);
   flex-wrap: wrap;
 }
 .q { font-size: var(--fs-2); color: var(--text-2); }
-.ticks { display: flex; align-items: center; gap: 2px; }
+.ticks { display: flex; align-items: center; gap: var(--sp-2); }
 .ticks button {
   width: 24px;
   height: 24px;
@@ -383,9 +383,9 @@ h1 em {
 .develop {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--sp-7);
   height: 30px;
-  padding: 0 12px;
+  padding: 0 var(--sp-12);
   margin-left: auto;
   border: none;
   border-radius: 8px;
@@ -400,29 +400,29 @@ h1 em {
 .steps {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 26px;
+  gap: var(--sp-26);
   margin: 0;
-  padding: 20px 0 0;
+  padding: var(--sp-20) 0 0;
   list-style: none;
   border-top: 0.5px solid var(--border-1);
 }
-.steps li { display: flex; gap: 12px; align-items: flex-start; }
+.steps li { display: flex; gap: var(--sp-12); align-items: flex-start; }
 .steps b {
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: .06em;
   color: var(--accent);
-  padding-top: 2px;
+  padding-top: var(--sp-2);
 }
 .steps span { font-size: var(--fs-2); line-height: 1.6; color: var(--text-3); }
-.steps strong { display: block; color: var(--text-1); font-weight: 500; margin-bottom: 2px; }
+.steps strong { display: block; color: var(--text-1); font-weight: 500; margin-bottom: var(--sp-2); }
 @media (max-width: 1000px) {
-  .hero { grid-template-columns: 1fr; gap: 34px; }
+  .hero { grid-template-columns: 1fr; gap: var(--sp-34); }
   .demo { justify-self: start; max-width: 420px; }
-  .steps { grid-template-columns: 1fr; gap: 12px; }
+  .steps { grid-template-columns: 1fr; gap: var(--sp-12); }
 }
 @media (max-width: 680px) {
-  .empty { padding: 26px 20px 34px; gap: 26px; }
+  .empty { padding: var(--sp-26) var(--sp-20) var(--sp-34); gap: var(--sp-26); }
   .demo { display: none; }
 }
 </style>

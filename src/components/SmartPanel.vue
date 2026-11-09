@@ -188,7 +188,7 @@ async function removeAlbum(id: number) {
         <p v-if="progressMsg" class="ai-progress"><Icon name="time" :size="12" /> {{ progressMsg }}</p>
         <p v-if="error" class="import-error">{{ error }}</p>
 
-        <div class="import-tabs" style="margin-top: 10px">
+        <div class="import-tabs" style="margin-top: var(--sp-10)">
           <button :class="{ on: tab === 'search' }" @click="tab = 'search'"><Icon name="search" :size="12" /> 语义搜索</button>
           <button :class="{ on: tab === 'select' }" @click="tab = 'select'"><Icon name="sparkle" :size="12" /> 智能精选</button>
           <button :class="{ on: tab === 'albums' }" @click="tab = 'albums'; refreshAlbums()">
@@ -199,7 +199,7 @@ async function removeAlbum(id: number) {
 
         <!-- 语义搜索 -->
         <div v-if="tab === 'search'">
-          <div class="form-row" style="margin-top: 12px">
+          <div class="form-row" style="margin-top: var(--sp-12)">
             <input
               v-model="searchQuery"
               placeholder="用一句话搜照片，比如：宝宝在水里笑 / 全家福 / 户外草地"
@@ -219,7 +219,7 @@ async function removeAlbum(id: number) {
 
         <!-- 智能精选 -->
         <div v-else-if="tab === 'select'">
-          <div class="form-row" style="margin-top: 12px">
+          <div class="form-row" style="margin-top: var(--sp-12)">
             <input
               v-model="selectPrompt"
               placeholder="例：挑 12 张宝宝笑得开心的照片"
@@ -232,7 +232,7 @@ async function removeAlbum(id: number) {
             </select>
             <button class="primary" :disabled="busy || !selectPrompt" @click="doSelect">生成精选</button>
           </div>
-          <p v-if="selectParsed" class="hint" style="margin: 4px 0 8px">{{ selectParsed }} · 按语义相关度 + 画面质量排序</p>
+          <p v-if="selectParsed" class="hint" style="margin: var(--sp-4) 0 var(--sp-8)">{{ selectParsed }} · 按语义相关度 + 画面质量排序</p>
           <div class="result-grid">
             <div v-for="(m, i) in selectResults" :key="m.id" class="result-card">
               <img v-if="m.thumb" :src="thumbUrl({ thumb: m.thumb } as any)" loading="lazy" />
@@ -240,7 +240,7 @@ async function removeAlbum(id: number) {
               <span class="result-score">{{ (m.score * 100).toFixed(0) }}</span>
             </div>
           </div>
-          <div v-if="selectResults.length > 0" class="form-row" style="margin-top: 14px">
+          <div v-if="selectResults.length > 0" class="form-row" style="margin-top: var(--sp-14)">
             <input v-model="selectAlbumName" placeholder="精选集名字" style="flex: 1" />
             <button class="primary" @click="saveAlbum">
               <Icon v-if="albumSaved" name="check" :size="12" /> {{ albumSaved ? "已保存" : "存为精选集" }}
@@ -250,7 +250,7 @@ async function removeAlbum(id: number) {
 
         <!-- 对话选片 -->
         <div v-else-if="tab === 'agent'">
-          <div class="form-row" style="margin-top: 12px">
+          <div class="form-row" style="margin-top: var(--sp-12)">
             <input
               v-model="agentPrompt"
               placeholder="跟万照聊聊：挑几张娃笑得最开心的，我要做周岁相册"
@@ -261,7 +261,7 @@ async function removeAlbum(id: number) {
               {{ agentBusy ? "思考中…" : "发送" }}
             </button>
           </div>
-          <p v-if="agentResult" class="hint" style="margin: 6px 0">
+          <p v-if="agentResult" class="hint" style="margin: var(--sp-6) 0">
             <Icon name="bulb" :size="12" /> {{ agentResult.reason }}（{{ agentResult.model }} 本地推理）
           </p>
           <div class="result-grid">
@@ -274,14 +274,14 @@ async function removeAlbum(id: number) {
 
         <!-- 精选集列表 -->
         <div v-else>
-          <p v-if="albums.length === 0" class="hint" style="margin-top: 12px">还没有精选集——用「智能精选」生成一个吧</p>
+          <p v-if="albums.length === 0" class="hint" style="margin-top: var(--sp-12)">还没有精选集——用「智能精选」生成一个吧</p>
           <div v-for="a in albums" :key="a.id" class="source-row">
             <b>{{ a.name }}</b>
             <span class="hint">{{ a.count }} 张</span>
             <span class="hint">{{ fmtTime(a.createdAt) }}</span>
             <span class="spacer"></span>
-            <button style="padding: 4px 10px" @click="openAlbumDetail(a)">查看</button>
-            <button style="padding: 4px 10px; color: var(--danger-ink)" @click="removeAlbum(a.id)">删除</button>
+            <button style="padding: var(--sp-4) var(--sp-10)" @click="openAlbumDetail(a)">查看</button>
+            <button style="padding: var(--sp-4) var(--sp-10); color: var(--danger-ink)" @click="removeAlbum(a.id)">删除</button>
           </div>
         </div>
       </div>
@@ -309,20 +309,20 @@ async function removeAlbum(id: number) {
   background: rgba(99, 102, 241, 0.1);
   border: 0.5px solid rgba(99, 102, 241, 0.35);
   border-radius: 10px;
-  padding: 12px 16px;
+  padding: var(--sp-12) var(--sp-16);
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--sp-14);
   color: var(--text-3);
   font-size: 13px;
 }
 .ai-ready p { flex: 1; line-height: 1.6; }
-.ai-progress { color: #a78bfa; font-size: 12.5px; margin-top: 8px; }
+.ai-progress { color: #a78bfa; font-size: var(--fs-2); margin-top: var(--sp-8); }
 .result-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
-  margin-top: 12px;
+  gap: var(--sp-10);
+  margin-top: var(--sp-12);
   max-height: 42vh;
   overflow-y: auto;
 }
@@ -341,7 +341,7 @@ async function removeAlbum(id: number) {
   font-size: 11px;
   background: rgba(15, 17, 23, 0.75);
   color: #fff;
-  padding: 1px 7px;
+  padding: var(--sp-1) var(--sp-7);
   border-radius: 6px;
   font-variant-numeric: tabular-nums;
 }
@@ -361,15 +361,15 @@ async function removeAlbum(id: number) {
 }
 .album-detail {
   border-top: 0.5px solid var(--border-1);
-  padding: 12px 18px 16px;
+  padding: var(--sp-12) var(--sp-18) var(--sp-16);
   max-height: 40vh;
   overflow-y: auto;
 }
 .album-detail header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 0 8px;
+  gap: var(--sp-10);
+  padding: 0 0 var(--sp-8);
   background: transparent;
   border: none;
 }

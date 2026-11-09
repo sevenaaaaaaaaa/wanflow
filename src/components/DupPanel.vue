@@ -45,7 +45,7 @@ async function keepOne(id: number) {
     </header>
     <div class="dup-list">
       <p v-if="loading" class="hint">加载中…</p>
-      <p v-else class="hint" style="padding: 0 4px 6px">
+      <p v-else class="hint" style="padding: 0 var(--sp-4) var(--sp-6)">
         内容相同或高度相似。挑一张最好的"只留这张"，其余自动标为淘汰。
       </p>
       <div v-for="m in members" :key="m.id" class="dup-card" :class="{ selected: picked.has(m.id) }">
@@ -61,10 +61,10 @@ async function keepOne(id: number) {
           </span>
           <span v-else>未处理</span>
         </div>
-        <button class="primary" style="padding: 5px 10px" @click="keepOne(m.id)">只留这张</button>
+        <button class="primary" style="padding: var(--sp-5) var(--sp-10)" @click="keepOne(m.id)">只留这张</button>
       </div>
     </div>
-    <div style="padding: 10px 14px; border-top: 0.5px solid var(--border-1); display: flex; gap: 8px">
+    <div style="padding: var(--sp-10) var(--sp-14); border-top: 0.5px solid var(--border-1); display: flex; gap: var(--sp-8)">
       <button class="primary" :disabled="picked.size === 0" @click="decide('keep')">选中保留</button>
       <button :disabled="picked.size === 0" style="color: var(--danger-ink)" @click="decide('reject')">选中淘汰</button>
       <span class="spacer"></span>

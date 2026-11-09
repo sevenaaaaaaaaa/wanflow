@@ -32,8 +32,8 @@ const src = computed(() => (props.item.kind === "video" ? assetUrl(props.item.pa
         · {{ fmtBytes(item.sizeBytes) }}
         <template v-if="item.width"> · {{ item.width }}×{{ item.height }}</template>
         <template v-if="item.quality !== null"> · 质量 {{ Math.round(item.quality) }}</template>
-        <span v-if="item.dupGroup !== null" class="chip accent" style="cursor: pointer; margin-left: 8px" @click="$emit('dup', item.dupGroup!)">重复组</span>
-        <span v-if="item.burstGroup !== null" class="chip" style="cursor: pointer; margin-left: 6px" @click="$emit('arena', item.burstGroup!)">连拍擂台</span>
+        <span v-if="item.dupGroup !== null" class="chip accent" style="cursor: pointer; margin-left: var(--sp-8)" @click="$emit('dup', item.dupGroup!)">重复组</span>
+        <span v-if="item.burstGroup !== null" class="chip" style="cursor: pointer; margin-left: var(--sp-6)" @click="$emit('arena', item.burstGroup!)">连拍擂台</span>
       </span>
 
       <span class="starpick" aria-label="星级">

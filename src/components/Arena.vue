@@ -140,16 +140,16 @@ const verdict = computed(() => {
   background: var(--surface-1);
   border: 0.5px solid var(--border-1);
   border-radius: 16px;
-  padding: 16px 18px;
+  padding: var(--sp-16) var(--sp-18);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--sp-12);
   animation: popIn var(--dur-2) var(--ease-out);
 }
-.arena-head { display: flex; align-items: center; gap: 10px; }
+.arena-head { display: flex; align-items: center; gap: var(--sp-10); }
 .arena-stage {
   display: flex;
-  gap: 16px;
+  gap: var(--sp-16);
   justify-content: center;
   align-items: flex-start;
 }
@@ -173,10 +173,10 @@ const verdict = computed(() => {
   background: var(--bg-1);
   display: block;
 }
-.arena-meta { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-3); }
+.arena-meta { padding: var(--sp-10) var(--sp-12); display: flex; flex-direction: column; gap: var(--sp-6); font-size: 12px; color: var(--text-3); }
 .arena-meta b { color: var(--text-1); font-size: 14px; }
-.arena-bars { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
-.arena-bar { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.arena-bars { display: flex; flex-direction: column; gap: var(--sp-4); margin-top: var(--sp-4); }
+.arena-bar { display: flex; align-items: center; gap: var(--sp-8); font-size: 11px; }
 .arena-bar .track {
   flex: 1;
   height: 6px;
@@ -189,8 +189,8 @@ const verdict = computed(() => {
   background: var(--accent);
 }
 .arena-bar em { font-style: normal; min-width: 24px; text-align: right; color: var(--text-1); }
-.arena-verdict { text-align: center; color: var(--text-1); font-size: 13.5px; background: var(--hover); border-radius: 10px; padding: 8px 14px; }
-.arena-actions { display: flex; gap: 10px; justify-content: center; }
-.arena-actions button { font-size: 14px; padding: 8px 14px; }
-.arena-done { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 30px 0 16px; }
+.arena-verdict { text-align: center; color: var(--text-1); font-size: var(--fs-3); background: var(--hover); border-radius: 10px; padding: var(--sp-8) var(--sp-14); }
+.arena-actions { display: flex; gap: var(--sp-10); justify-content: center; }
+.arena-actions button { font-size: 14px; padding: var(--sp-8) var(--sp-14); }
+.arena-done { display: flex; flex-direction: column; align-items: center; gap: var(--sp-10); padding: var(--sp-30) 0 var(--sp-16); }
 </style>

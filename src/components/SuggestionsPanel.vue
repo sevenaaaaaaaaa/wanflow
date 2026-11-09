@@ -56,7 +56,7 @@ async function resolve(apply: boolean) {
       <button @click="$emit('close')">✕</button>
     </header>
     <div class="dup-list">
-      <p class="hint" style="padding: 0 4px 8px">
+      <p class="hint" style="padding: 0 var(--sp-4) var(--sp-8)">
         AI 只提建议不删除：应用后才会进入"淘汰"，全部可在历史里一键撤销。
       </p>
       <div v-for="(list, rule) in byRule" :key="rule" class="rule-block">
@@ -84,13 +84,13 @@ async function resolve(apply: boolean) {
           </div>
         </div>
         <div class="rule-actions">
-          <button style="padding: 4px 10px" @click="checkRule(rule, true)">全选</button>
-          <button style="padding: 4px 10px" @click="checkRule(rule, false)">取消</button>
+          <button style="padding: var(--sp-4) var(--sp-10)" @click="checkRule(rule, true)">全选</button>
+          <button style="padding: var(--sp-4) var(--sp-10)" @click="checkRule(rule, false)">取消</button>
         </div>
       </div>
       <p v-if="items.length === 0" class="hint">暂无建议——先跑一次"质量分析"</p>
     </div>
-    <div style="padding: 10px 14px; border-top: 0.5px solid var(--border-1); display: flex; gap: 8px; align-items: center">
+    <div style="padding: var(--sp-10) var(--sp-14); border-top: 0.5px solid var(--border-1); display: flex; gap: var(--sp-8); align-items: center">
       <button class="primary" :disabled="checked.size === 0" @click="resolve(true)">
         应用选中的 {{ checked.size }} 条
       </button>
@@ -102,15 +102,15 @@ async function resolve(apply: boolean) {
 </template>
 
 <style scoped>
-.rule-block { margin-bottom: 14px; }
+.rule-block { margin-bottom: var(--sp-14); }
 .rule-head {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 4px;
+  gap: var(--sp-6);
+  padding: var(--sp-6) var(--sp-4);
   font-size: 13px;
 }
-.rule-actions { display: flex; gap: 6px; padding: 2px 4px 0; }
-.dup-card .info { display: flex; flex-direction: column; gap: 3px; }
+.rule-actions { display: flex; gap: var(--sp-6); padding: var(--sp-2) var(--sp-4) 0; }
+.dup-card .info { display: flex; flex-direction: column; gap: var(--sp-3); }
 .dup-card .info span { font-size: 11.5px; }
 </style>

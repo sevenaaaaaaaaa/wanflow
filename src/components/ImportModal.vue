@@ -138,7 +138,7 @@ defineExpose({ refreshSources, fail });
             iCloud 未下载到本地的照片会自动跳过，之后可重新导入。
           </p>
           <button class="primary" :disabled="busy" @click="importPhotos">导入照片图库</button>
-          <p class="hint" style="margin-top: 10px">
+          <p class="hint" style="margin-top: var(--sp-10)">
             安装过 osxphotos 则能保留原始文件名；未安装也能导入（用 EXIF 时间，无需任何依赖）。
           </p>
         </div>
@@ -153,7 +153,7 @@ defineExpose({ refreshSources, fail });
           <div class="form-row"><label>密码</label><input v-model="davPass" type="password" placeholder="应用密码/授权码" style="flex: 1" /></div>
           <div class="form-row"><label>远程目录</label><input v-model="davPath" placeholder="留空 = 根目录，如 photos/2023/" style="flex: 1" /></div>
           <p class="hint">密码只存进系统钥匙串，WanFlow 不上传、不落盘。导入的文件复制到本地暂存区并保留原始拍摄时间。</p>
-          <button class="primary" :disabled="busy" style="margin-top: 8px" @click="importDav">连接并导入</button>
+          <button class="primary" :disabled="busy" style="margin-top: var(--sp-8)" @click="importDav">连接并导入</button>
         </div>
 
         <div v-else-if="tab === 'qq'" class="import-pane">
@@ -172,8 +172,8 @@ defineExpose({ refreshSources, fail });
             <span class="hint">{{ s.mediaCount }} 张</span>
             <span class="hint">{{ s.lastScanned ? "上次同步 " + fmtTime(s.lastScanned) : "未同步" }}</span>
             <span class="spacer"></span>
-            <button style="padding: 4px 10px" :disabled="busy" @click="rescan(s.id)">重新同步</button>
-            <button style="padding: 4px 10px" title="文件与决策保留，仅解除关联" @click="unlink(s.id)">解除</button>
+            <button style="padding: var(--sp-4) var(--sp-10)" :disabled="busy" @click="rescan(s.id)">重新同步</button>
+            <button style="padding: var(--sp-4) var(--sp-10)" title="文件与决策保留，仅解除关联" @click="unlink(s.id)">解除</button>
           </div>
         </div>
       </div>
@@ -182,16 +182,16 @@ defineExpose({ refreshSources, fail });
 </template>
 
 <style scoped>
-.import-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
-.import-tabs button { border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; }
+.import-tabs { display: flex; gap: var(--sp-6); flex-wrap: wrap; margin-bottom: var(--sp-14); }
+.import-tabs button { border-radius: 8px; display: inline-flex; align-items: center; gap: var(--sp-6); }
 .import-tabs button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-.import-desc { color: var(--text-3); line-height: 1.8; margin-bottom: 14px; font-size: 13px; }
-.import-error { color: var(--danger-ink); margin-bottom: 12px; }
+.import-desc { color: var(--text-3); line-height: 1.8; margin-bottom: var(--sp-14); font-size: 13px; }
+.import-error { color: var(--danger-ink); margin-bottom: var(--sp-12); }
 .source-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 6px;
+  gap: var(--sp-10);
+  padding: var(--sp-9) var(--sp-6);
   border-bottom: 0.5px solid var(--border-1);
   font-size: 13px;
 }

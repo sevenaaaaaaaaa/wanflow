@@ -197,7 +197,7 @@ onUnmounted(() => unlisteners.forEach(u => u()));
           <span class="hint">剥离与改写只对 JPEG 生效；HEIC/PNG/视频一律原样复制。</span>
         </div>
 
-        <p v-if="error" style="color: var(--danger-ink); margin-bottom: 12px">{{ error }}</p>
+        <p v-if="error" style="color: var(--danger-ink); margin-bottom: var(--sp-12)">{{ error }}</p>
 
         <div class="form-row">
           <button :disabled="!opts || previewing || running" @click="preview">
@@ -215,14 +215,14 @@ onUnmounted(() => unlisteners.forEach(u => u()));
           </span>
         </div>
 
-        <div v-if="running" class="scanbar" style="margin-bottom: 8px">
+        <div v-if="running" class="scanbar" style="margin-bottom: var(--sp-8)">
           <div :style="{ width: Math.max(pct, 2) + '%' }"></div>
         </div>
-        <div v-if="running" class="hint" style="margin-bottom: 12px">
+        <div v-if="running" class="hint" style="margin-bottom: var(--sp-12)">
           {{ progress.phase }} · {{ progress.done }}/{{ progress.total }} · {{ progress.current }}
         </div>
 
-        <div v-if="plan?.notes?.length" style="margin-bottom: 12px">
+        <div v-if="plan?.notes?.length" style="margin-bottom: var(--sp-12)">
           <div v-for="(n, i) in plan.notes" :key="i" class="hint">· {{ n }}</div>
         </div>
 

@@ -1064,7 +1064,7 @@ defineExpose({ startTour });
   display: grid;
   place-content: center;
   justify-items: center;
-  gap: 14px;
+  gap: var(--sp-14);
   color: var(--text-3);
 }
 .loader {
@@ -1089,9 +1089,9 @@ defineExpose({ startTour });
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: 22px 18px 12px;
+  padding: var(--sp-22) var(--sp-18) var(--sp-12);
   border-bottom: 0.5px solid var(--border-1);
-  margin-bottom: 4px;
+  margin-bottom: var(--sp-4);
 }
 .tl-kicker {
   font-family: var(--font-mono);
@@ -1105,10 +1105,10 @@ defineExpose({ startTour });
 .tl-continue {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--sp-7);
   width: calc(100% - 20px);
-  margin: 9px 10px 0;
-  padding: 7px 10px;
+  margin: var(--sp-9) var(--sp-10) 0;
+  padding: var(--sp-7) var(--sp-10);
   border: 0.5px solid var(--border-1);
   border-radius: 9px;
   background: var(--surface-1);
@@ -1123,7 +1123,7 @@ defineExpose({ startTour });
 .tl-continue.done .tl-continue-dot { background: var(--text-4); }
 .rail-continue {
   flex: none;
-  padding: 4px 10px;
+  padding: var(--sp-4) var(--sp-10);
   border: 0.5px solid var(--border-1);
   border-radius: 999px;
   background: var(--surface-1);
@@ -1136,9 +1136,9 @@ defineExpose({ startTour });
 .rail-continue:hover { border-color: color-mix(in oklab, var(--accent) 45%, var(--border-1)); color: var(--text-1); }
 .group-switch {
   display: flex;
-  gap: 2px;
-  margin: 9px 10px 7px;
-  padding: 2px;
+  gap: var(--sp-2);
+  margin: var(--sp-9) var(--sp-10) var(--sp-7);
+  padding: var(--sp-2);
   border: 0.5px solid var(--border-1);
   border-radius: 7px;
   background: color-mix(in oklab, var(--bg-1) 55%, transparent);
@@ -1162,11 +1162,11 @@ defineExpose({ startTour });
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
-  margin: -1px 12px 3px;
+  gap: var(--sp-8);
+  margin: calc(-1 * var(--sp-1)) var(--sp-12) var(--sp-3);
 }
 .gt-rebuild {
-  padding: 2px 0;
+  padding: var(--sp-2) 0;
   border: 0;
   background: none;
   color: var(--text-4);
@@ -1178,12 +1178,12 @@ defineExpose({ startTour });
 .gt-rebuild:hover { color: var(--accent-ink); }
 .gt-rebuild:disabled { opacity: .45; }
 .gt-state { font-family: var(--font-mono); font-size: 11px; letter-spacing: .07em; color: var(--text-4); white-space: nowrap; }
-.tl-scroll { flex: 1; overflow-y: auto; padding: 0 9px 12px; }
+.tl-scroll { flex: 1; overflow-y: auto; padding: 0 var(--sp-9) var(--sp-12); }
 .tl-month {
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 13px 9px 6px;
+  padding: var(--sp-13) var(--sp-9) var(--sp-6);
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-4);
@@ -1194,9 +1194,9 @@ defineExpose({ startTour });
   width: 100%;
   display: flex;
   align-items: baseline;
-  gap: 9px;
+  gap: var(--sp-9);
   height: 36px;
-  padding: 0 9px 0 10px;
+  padding: 0 var(--sp-9) 0 var(--sp-10);
   border: none;
   border-radius: 5px;
   background: transparent;
@@ -1234,7 +1234,7 @@ defineExpose({ startTour });
 .tl-progress {
   flex: none;
   height: 1.5px;
-  margin: 0 18px;
+  margin: 0 var(--sp-18);
   border-radius: 2px;
   background: var(--border-1);
   overflow: hidden;
@@ -1250,12 +1250,12 @@ defineExpose({ startTour });
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 8px;
-  padding: 14px 18px 16px;
+  gap: var(--sp-8);
+  padding: var(--sp-14) var(--sp-18) var(--sp-16);
   border-top: 0.5px solid var(--border-1);
 }
-.tl-foot-k { font-size: 11px; letter-spacing: .1em; color: var(--text-4); padding-bottom: 2px; }
-.tl-foot-n { display: flex; align-items: baseline; gap: 4px; }
+.tl-foot-k { font-size: 11px; letter-spacing: .1em; color: var(--text-4); padding-bottom: var(--sp-2); }
+.tl-foot-n { display: flex; align-items: baseline; gap: var(--sp-4); }
 .tl-foot b {
   font-family: var(--font-display);
   font-weight: 400;
@@ -1271,7 +1271,7 @@ defineExpose({ startTour });
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  padding: 20px 34px 14px;
+  padding: var(--sp-20) var(--sp-34) var(--sp-14);
   display: flex;
   flex-direction: column;
 }
@@ -1279,7 +1279,7 @@ defineExpose({ startTour });
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--sp-14);
   min-height: 0;
   animation: dayIn var(--dur-4) var(--ease-out) both;
 }
@@ -1289,7 +1289,7 @@ defineExpose({ startTour });
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 22px;
+  gap: var(--sp-22);
 }
 @keyframes dayIn {
   from { opacity: 0; transform: translateY(14px); }
@@ -1304,11 +1304,11 @@ defineExpose({ startTour });
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 24px;
-  padding-bottom: 12px;
+  gap: var(--sp-24);
+  padding-bottom: var(--sp-12);
   border-bottom: 0.5px solid var(--border-1);
 }
-.day-title { display: flex; align-items: flex-end; gap: 14px; }
+.day-title { display: flex; align-items: flex-end; gap: var(--sp-14); }
 .day-num {
   font-family: var(--font-display);
   font-size: var(--fs-day);
@@ -1321,8 +1321,8 @@ defineExpose({ startTour });
 .day-sub {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding-bottom: 7px;
+  gap: var(--sp-3);
+  padding-bottom: var(--sp-7);
 }
 .day-month {
   font-family: var(--font-display);
@@ -1339,7 +1339,7 @@ defineExpose({ startTour });
   color: var(--text-3);
 }
 .day-span {
-  margin-top: 2px;
+  margin-top: var(--sp-2);
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: .06em;
@@ -1350,8 +1350,8 @@ defineExpose({ startTour });
 .day-meta {
   display: flex;
   align-items: baseline;
-  gap: 9px;
-  padding-bottom: 2px;
+  gap: var(--sp-9);
+  padding-bottom: var(--sp-2);
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: .07em;
@@ -1360,8 +1360,8 @@ defineExpose({ startTour });
 }
 .hdr-kept { display: none; }
 .pagemark {
-  padding-left: 10px;
-  margin-left: 2px;
+  padding-left: var(--sp-10);
+  margin-left: var(--sp-2);
   border-left: 0.5px solid var(--border-1);
   color: var(--text-3);
   letter-spacing: .12em;
@@ -1386,7 +1386,7 @@ defineExpose({ startTour });
   width: min(100%, calc((100vh - 372px) * 1.3333), 900px);
   min-width: 320px;
   aspect-ratio: 4 / 3;
-  padding: 16px 16px 9px;
+  padding: var(--sp-16) var(--sp-16) var(--sp-9);
   border-radius: 2px;
   background-color: var(--paper);
   color: var(--paper-ink);
@@ -1422,7 +1422,7 @@ defineExpose({ startTour });
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  padding: 8px 16px;
+  padding: var(--sp-8) var(--sp-16);
   border-radius: var(--r-pill);
   background: var(--glass-strong);
   border: 0.5px solid var(--accent);
@@ -1444,7 +1444,7 @@ defineExpose({ startTour });
   flex: 1;
   min-height: 0;
   display: grid;
-  gap: 5px;
+  gap: var(--sp-5);
 }
 .spread[data-n="1"] .slots { grid-template-columns: 1fr; }
 .spread[data-n="2"] .slots { grid-template-columns: 1fr 1fr; }
@@ -1489,7 +1489,7 @@ defineExpose({ startTour });
   position: absolute;
   left: 7px;
   top: 7px;
-  padding: 2.5px 6px 2px;
+  padding: var(--sp-2_5) var(--sp-6) var(--sp-2);
   border-radius: 2px;
   background: oklch(12% .01 80 / .88);
   color: oklch(97% .006 90);
@@ -1504,7 +1504,7 @@ defineExpose({ startTour });
   right: 7px;
   bottom: 7px;
   height: 24px;
-  padding: 0 9px;
+  padding: 0 var(--sp-9);
   border: none;
   border-radius: var(--r-pill);
   background: oklch(0% 0 0 / .82);
@@ -1530,7 +1530,7 @@ defineExpose({ startTour });
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 1px 0;
+  padding: var(--sp-8) var(--sp-1) 0;
   font-family: var(--font-display);
   font-size: 11px;
   line-height: 1.2;
@@ -1548,9 +1548,9 @@ defineExpose({ startTour });
 .compose {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: var(--sp-24);
 }
-.compose-count { display: flex; align-items: center; gap: 12px; min-width: 200px; }
+.compose-count { display: flex; align-items: center; gap: var(--sp-12); min-width: 200px; }
 .cc-num {
   font-family: var(--font-display);
   font-size: 42px;
@@ -1566,7 +1566,7 @@ defineExpose({ startTour });
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
-.cc-text { display: flex; flex-direction: column; gap: 4px; }
+.cc-text { display: flex; flex-direction: column; gap: var(--sp-4); }
 .cc-k { font-size: 14px; font-weight: 500; color: var(--text-1); letter-spacing: .005em; }
 .cc-sub { font-size: 11px; color: var(--text-3); white-space: nowrap; }
 .ticks-wrap { flex: 1; display: flex; justify-content: center; min-width: 0; }
@@ -1577,7 +1577,7 @@ defineExpose({ startTour });
   align-items: flex-start;
   gap: 0;
   width: 204px;
-  padding: 2px 0 0;
+  padding: var(--sp-2) 0 0;
   touch-action: none;
   cursor: ew-resize;
   user-select: none;
@@ -1596,7 +1596,7 @@ defineExpose({ startTour });
   position: relative;
   width: 34px;
   height: 34px;
-  padding: 2px 0 0;
+  padding: var(--sp-2) 0 0;
   border: none;
   border-radius: var(--r-sm);
   background: transparent;
@@ -1613,7 +1613,7 @@ defineExpose({ startTour });
   bottom: 4px;
   width: 4px;
   height: 4px;
-  margin-left: -2px;
+  margin-left: calc(-1 * var(--sp-2));
   border-radius: 50%;
   background: var(--border-2);
   transition: background var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
@@ -1630,18 +1630,18 @@ defineExpose({ startTour });
 }
 .ticks button:active { transform: translateY(0) scale(.94); }
 .ticks button:disabled { opacity: .25; }
-.compose-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.compose-actions { display: flex; align-items: center; gap: var(--sp-8); margin-left: auto; }
 .develop {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--sp-9);
   height: 46px;
-  padding: 0 20px;
+  padding: 0 var(--sp-20);
   border: none;
   border-radius: var(--r-pill);
   background: var(--accent);
   color: var(--on-accent);
-  font-size: 13.5px;
+  font-size: var(--fs-3);
   font-weight: 500;
   letter-spacing: .04em;
   transition: transform var(--dur-1) var(--ease-out), background var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
@@ -1657,43 +1657,43 @@ defineExpose({ startTour });
   place-items: center;
   min-width: 17px;
   height: 17px;
-  padding: 0 4px;
+  padding: 0 var(--sp-4);
   border-radius: 3px;
   background: oklch(from var(--on-accent) l c h / .16);
   color: inherit;
   font-size: 11px;
   line-height: 1;
 }
-.skip { height: 46px; padding: 0 10px; color: var(--text-3); letter-spacing: .02em; }
+.skip { height: 46px; padding: 0 var(--sp-10); color: var(--text-3); letter-spacing: .02em; }
 .skip:hover { color: var(--text-2); }
-.skip kbd { margin-left: 2px; }
+.skip kbd { margin-left: var(--sp-2); }
 
 .strip-wrap { flex: none; position: relative; }
 .strip-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 2px 6px;
+  padding: var(--sp-6) var(--sp-2) var(--sp-6);
   font-size: 11px;
   letter-spacing: .02em;
   color: var(--text-4);
 }
-.strip-title { display: inline-flex; align-items: baseline; gap: 8px; color: var(--text-3); font-size: 11px; }
-.strip-hint { display: inline-flex; align-items: center; gap: 4px; color: var(--text-4); }
+.strip-title { display: inline-flex; align-items: baseline; gap: var(--sp-8); color: var(--text-3); font-size: 11px; }
+.strip-hint { display: inline-flex; align-items: center; gap: var(--sp-4); color: var(--text-4); }
 .strip {
   display: flex;
-  gap: 8px;
+  gap: var(--sp-8);
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 10px 2px 12px;
+  padding: var(--sp-10) var(--sp-2) var(--sp-12);
   scrollbar-width: thin;
   scroll-behavior: smooth;
   /* 右缘渐隐：暗示还能继续往后翻，不用画滚动条 */
   mask-image: linear-gradient(90deg, #000 0, #000 96%, transparent 100%);
 }
 .strip-picked {
-  margin-left: 8px;
-  padding: 1.5px 7px 1px;
+  margin-left: var(--sp-8);
+  padding: var(--sp-1_5) var(--sp-7) var(--sp-1);
   border-radius: var(--r-pill);
   background: var(--accent-soft);
   color: var(--accent-ink, var(--accent));
@@ -1752,7 +1752,7 @@ defineExpose({ startTour });
   position: absolute;
   left: 4px;
   top: 4px;
-  padding: 0 4px;
+  padding: 0 var(--sp-4);
   height: 14px;
   display: inline-flex;
   align-items: center;
@@ -1797,7 +1797,7 @@ defineExpose({ startTour });
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: 22px 18px 12px;
+  padding: var(--sp-22) var(--sp-18) var(--sp-12);
 }
 .album-kicker {
   font-family: var(--font-mono);
@@ -1807,8 +1807,8 @@ defineExpose({ startTour });
   font-weight: 500;
 }
 .album-count { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
-.album-scroll { flex: 1; overflow-y: auto; padding: 2px 18px 12px; display: flex; flex-direction: column; gap: 14px; }
-.album-empty { display: grid; justify-items: center; gap: 14px; padding: 26px 0 18px; margin: auto 0; text-align: center; }
+.album-scroll { flex: 1; overflow-y: auto; padding: var(--sp-2) var(--sp-18) var(--sp-12); display: flex; flex-direction: column; gap: var(--sp-14); }
+.album-empty { display: grid; justify-items: center; gap: var(--sp-14); padding: var(--sp-26) 0 var(--sp-18); margin: auto 0; text-align: center; }
 .album-empty b { color: var(--accent); font-weight: 500; }
 .ghost-page {
   position: relative;
@@ -1817,8 +1817,8 @@ defineExpose({ startTour });
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
-  gap: 2px;
-  padding: 7px;
+  gap: var(--sp-2);
+  padding: var(--sp-7);
   border-radius: 2px;
   background-color: var(--paper);
   box-shadow: 0 0 0 .5px var(--paper-edge);
@@ -1850,7 +1850,7 @@ defineExpose({ startTour });
 .ghost-hint { font-family: var(--font-mono); font-size: 11px; letter-spacing: .1em; color: var(--text-4); }
 .mini {
   background-color: var(--paper);
-  padding: 6px 6px 5px;
+  padding: var(--sp-6) var(--sp-6) var(--sp-5);
   border-radius: 2px;
   color: var(--paper-ink);
   box-shadow: 0 0 0 .5px var(--paper-edge);
@@ -1865,7 +1865,7 @@ defineExpose({ startTour });
   from { opacity: 0; translate: 0 6px; }
   to { opacity: 1; translate: 0 0; }
 }
-.mini-grid { display: grid; gap: 2px; aspect-ratio: 4 / 3; }
+.mini-grid { display: grid; gap: var(--sp-2); aspect-ratio: 4 / 3; }
 .mini-grid[data-n="1"] { grid-template-columns: 1fr; }
 .mini-grid[data-n="2"] { grid-template-columns: 1fr 1fr; }
 .mini-grid[data-n="3"] { grid-template-columns: 1.4fr 1fr; grid-template-rows: 1fr 1fr; }
@@ -1876,7 +1876,7 @@ defineExpose({ startTour });
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: 6px 1px 1px;
+  padding: var(--sp-6) var(--sp-1) var(--sp-1);
   font-family: var(--font-display);
   font-size: 11px;
   letter-spacing: .06em;
@@ -1885,12 +1885,12 @@ defineExpose({ startTour });
 .mini-foot b { font-family: var(--font-mono); font-size: 11px; letter-spacing: .1em; color: var(--paper-ink-2); }
 .album-export {
   flex: none;
-  margin: 0 14px 14px;
+  margin: 0 var(--sp-14) var(--sp-14);
   height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: var(--sp-7);
   border: 0.5px solid var(--border-1);
   border-radius: var(--r-pill);
   background: transparent;
@@ -1906,7 +1906,7 @@ defineExpose({ startTour });
   display: grid;
   align-content: center;
   justify-items: center;
-  gap: 10px;
+  gap: var(--sp-10);
   text-align: center;
   animation: dayIn var(--dur-5) var(--ease-out) both;
 }
@@ -1919,12 +1919,12 @@ defineExpose({ startTour });
   background: var(--accent-soft);
   color: var(--accent-ink);
   font-size: 26px;
-  margin-bottom: 6px;
+  margin-bottom: var(--sp-6);
 }
 .story-done h2 { font-size: var(--fs-5); font-weight: 500; letter-spacing: -.01em; }
 .story-done p { color: var(--text-3); font-size: var(--fs-3); }
-.done-actions { display: flex; gap: 8px; margin-top: 8px; }
-.done-stats { display: flex; gap: 18px; margin-top: 14px; color: var(--text-4); font-size: var(--fs-2); }
+.done-actions { display: flex; gap: var(--sp-8); margin-top: var(--sp-8); }
+.done-stats { display: flex; gap: var(--sp-18); margin-top: var(--sp-14); color: var(--text-4); font-size: var(--fs-2); }
 .done-stats b { color: var(--text-1); font-family: var(--font-mono); }
 
 /* ── 首次运行：跟着做一遍 ── */
@@ -1950,7 +1950,7 @@ defineExpose({ startTour });
   bottom: 22px;
   transform: translateX(-50%);
   width: min(474px, calc(100vw - 32px));
-  padding: 18px 20px 15px;
+  padding: var(--sp-18) var(--sp-20) var(--sp-15);
   border: none;
   border-radius: 3px;
   background-color: var(--paper);
@@ -1984,7 +1984,7 @@ defineExpose({ startTour });
 .tour-kicker {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--sp-8);
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: .14em;
@@ -1997,7 +1997,7 @@ defineExpose({ startTour });
   color: var(--paper-ink-2);
 }
 .tour-card h3 {
-  margin: 9px 0 6px;
+  margin: var(--sp-9) 0 var(--sp-6);
   font-family: var(--font-display);
   font-size: 21px;
   font-weight: 400;
@@ -2006,14 +2006,14 @@ defineExpose({ startTour });
 }
 .tour-card p {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--fs-2);
   line-height: 1.75;
   color: oklch(40% .012 80);
 }
-.tour-actions { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
+.tour-actions { display: flex; align-items: center; gap: var(--sp-10); margin-top: var(--sp-16); }
 .tour-skip {
   height: 30px;
-  padding: 0 2px;
+  padding: 0 var(--sp-2);
   border: none;
   border-radius: 3px;
   background: transparent;
@@ -2025,7 +2025,7 @@ defineExpose({ startTour });
 .tour-actions .spacer { flex: 1; }
 .tour-next {
   height: 32px;
-  padding: 0 15px;
+  padding: 0 var(--sp-15);
   border: none;
   border-radius: 3px;
   background: #0e5a6b;
@@ -2047,7 +2047,7 @@ defineExpose({ startTour });
 
 @media (max-width: 1240px) {
   .album { width: 208px; }
-  .stage { padding: 18px 26px 12px; }
+  .stage { padding: var(--sp-18) var(--sp-26) var(--sp-12); }
 }
 @media (max-width: 1120px) {
   .album { display: none; }
@@ -2057,10 +2057,10 @@ defineExpose({ startTour });
   .timeline { display: none; }
   .day-rail {
     display: flex;
-    gap: 6px;
+    gap: var(--sp-6);
     overflow-x: auto;
-    padding: 0 0 4px;
-    margin-bottom: 4px;
+    padding: 0 0 var(--sp-4);
+    margin-bottom: var(--sp-4);
     scrollbar-width: none;
   }
   .day-rail::-webkit-scrollbar { display: none; }
@@ -2070,17 +2070,17 @@ defineExpose({ startTour });
     z-index: 2;
     flex: none;
     display: flex;
-    gap: 2px;
+    gap: var(--sp-2);
     align-self: center;
     height: 40px;
-    padding: 3px;
-    margin-right: 2px;
+    padding: var(--sp-3);
+    margin-right: var(--sp-2);
     border: 0.5px solid var(--border-1);
     border-radius: 6px;
     background: var(--bg-0);
   }
   .rail-switch button {
-    padding: 0 9px;
+    padding: 0 var(--sp-9);
     border: 0;
     border-radius: 4px;
     background: transparent;
@@ -2095,7 +2095,7 @@ defineExpose({ startTour });
     display: flex;
     align-items: center;
     height: 40px;
-    padding: 0 11px;
+    padding: 0 var(--sp-11);
     border: 0.5px solid var(--border-1);
     border-radius: 6px;
     background: transparent;
@@ -2109,9 +2109,9 @@ defineExpose({ startTour });
     flex: none;
     display: flex;
     align-items: baseline;
-    gap: 7px;
+    gap: var(--sp-7);
     height: 40px;
-    padding: 0 12px;
+    padding: 0 var(--sp-12);
     border: 0.5px solid var(--border-1);
     border-radius: 6px;
     background: transparent;
@@ -2133,7 +2133,7 @@ defineExpose({ startTour });
     box-shadow: inset 0 0 0 .5px oklch(from var(--accent) l c h / .2);
   }
   .rail-day.on span { color: var(--accent-ink, var(--accent)); }
-  .stage { padding: 16px 18px 12px; }
+  .stage { padding: var(--sp-16) var(--sp-18) var(--sp-12); }
   /* 窄屏少了左栏，但顶栏 + 日签 + compose + 胶片条占得更多：按剩余高度定纸宽 */
   .spread { width: min(100%, calc((100vh - 440px) * 1.3333)); min-width: 0; }
   .compose-count { min-width: 0; }
@@ -2141,21 +2141,21 @@ defineExpose({ startTour });
   .strip-hint { display: none; }
 }
 @media (max-width: 760px) {
-  .stage { padding: 14px 14px 10px; }
+  .stage { padding: var(--sp-14) var(--sp-14) var(--sp-10); }
   .day-num { font-size: 54px; }
-  .day-title { gap: 10px; }
-  .day-meta { gap: 7px; font-size: 11px; }
+  .day-title { gap: var(--sp-10); }
+  .day-meta { gap: var(--sp-7); font-size: 11px; }
   .pagemark { display: none; }
-  .compose { flex-wrap: wrap; row-gap: 8px; gap: 16px; }
+  .compose { flex-wrap: wrap; row-gap: var(--sp-8); gap: var(--sp-16); }
   .ticks-wrap { order: 3; flex-basis: 100%; justify-content: flex-start; }
   .compose-actions { margin-left: auto; }
-  .develop { height: 42px; padding: 0 16px; }
+  .develop { height: 42px; padding: 0 var(--sp-16); }
   .skip { height: 42px; }
 }
 @media (max-width: 560px) {
   .day-week { display: none; }
   .strip-head { display: none; }
   .cc-num { font-size: 34px; }
-  .album-export { margin: 0 10px 10px; }
+  .album-export { margin: 0 var(--sp-10) var(--sp-10); }
 }
 </style>
