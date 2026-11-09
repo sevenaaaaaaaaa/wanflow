@@ -699,3 +699,37 @@ sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
 - `add_to_album` 不改已有成员的 `score`（`INSERT OR IGNORE`）；要改分数得用 create_album 或另写命令。
 - 浏览器里试功能走 `dev/mock.ts` 的假实现，真实路径只认 Tauri 命令；别把 mock 行为当后端语义。
 - 选中为空时 Dock 不渲染动作栏，命令面板的「加入精选集…」会提示「先选照片」。
+
+## 2026-11-09 · 标签 v1（v0.3 属性批量）
+
+**背景**：蓝图 v0.3 的「超强批量处理」里，星级 / 时间 / 入册 / 导出都已就位（入册是同日另一条线的 b9b9653），缺的是**标签**——跨相册、跨时间轴的横向分组。按用户指示走 0.3 蓝图，不动顶栏那套 UI。
+
+**设计（事件溯源，沿用决策那套）**
+- `tags(id, name UNIQUE, created_at)`；`tag_ops(action_id, tag_id, media_id, added)` 记事件。
+- `tag_members` 视图：每个 (tag, media) 只看未撤销事件里的最后一条 → add→remove→undo 语义自然正确。
+- 撤销复用现有 `actions.undone`：⌘Z 走 `undo_last`，一次打标 = 一个动作组，整体回滚，原始 `tag_ops` 行永不删除。
+- 幂等：只对真正变化的照片落事件；全都已带 / 全都没有时直接返回一句话，不写空动作（单测覆盖）。
+
+**接口**
+- `tag_list` → `[{id,name,count}]`（按数量倒序）
+- `tag_assign(ids, name, remove?)` → 一句话 label；标签不存在时自动建（取消标签则报错，不凭空建）
+- `list_media` 的 `ListQuery` 加 `tag_id`，筛选走 `EXISTS (SELECT 1 FROM tag_members …)`
+
+**UI**
+- 新增 `TagModal.vue`（照 AlbumModal 的设计 token 写法）：输入新建/复用 + 已有标签列表（点击打上、右侧移除）+ ⌘Z 提示。
+- 网格 Dock 选区动作栏加「标签」；⌘K 加「打标签…」，并按当前标签动态生成「只看标签 X」/「清除标签筛选」。
+- Dock 统计区在有筛选时显示标签 chip，点掉即清。
+- `Icon.vue` 补 `tag` 线框图标（16 网格 / stroke 1.6）；`dev/mock.ts` 补两枚演示标签与筛选，浏览器里可直接试。
+
+**验证**
+- `cargo test`：62 passed / 0 failed / 1 ignored（新增 5 个标签单测：建标签、幂等不写事件、undo 重算、remove 后 undo 复原、空参/超长/不存在报错）。
+- `npm run build`：62 modules，CSS 72.71 kB / gzip 13.01 kB，JS 207.93 kB / gzip 74.73 kB。
+- 浏览器（demo mock）截图 `docs/shots/tag-modal-1440.jpg`：3 张选中 → 打标签面板、Dock「标签」按钮、两个预置标签可见。
+
+**没做（v1.1 候选）**
+- 缩略图上的标签 chip（要改 MediaItem 载荷 + PhotoGrid）；
+- 常驻的标签筛选入口（现在在 ⌘K 里）；
+- 标签改名 / 删除 / 合并；
+- 按标签 + 决策的组合筛选（`ListQuery` 已经能叠，UI 没暴露）。
+
+**回滚**：`git revert <sha>`。`tags` / `tag_ops` / `tag_members` 都是新增，回退代码后旧库照常打开；已打的标签留在库里，不碰原图。
