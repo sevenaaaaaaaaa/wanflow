@@ -117,7 +117,7 @@ async function removeMember(personId: number) {
 
     <div style="padding: 12px 14px; border-bottom: 1px solid var(--border-1)">
       <p v-if="error" class="import-error">{{ error }}</p>
-      <p v-if="progressMsg" class="ai-progress">⏳ {{ progressMsg }}</p>
+      <p v-if="progressMsg" class="ai-progress"><Icon name="time" :size="12" /> {{ progressMsg }}</p>
 
       <!-- 已注册家人 -->
       <div v-if="members.length > 0" style="margin-bottom: 12px">

@@ -185,7 +185,7 @@ async function removeAlbum(id: number) {
             建立语义索引
           </button>
         </div>
-        <p v-if="progressMsg" class="ai-progress">⏳ {{ progressMsg }}</p>
+        <p v-if="progressMsg" class="ai-progress"><Icon name="time" :size="12" /> {{ progressMsg }}</p>
         <p v-if="error" class="import-error">{{ error }}</p>
 
         <div class="import-tabs" style="margin-top: 10px">
