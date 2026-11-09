@@ -184,15 +184,15 @@ defineExpose({ refreshSources, fail });
 <style scoped>
 .import-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
 .import-tabs button { border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; }
-.import-tabs button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-.import-desc { color: var(--muted); line-height: 1.8; margin-bottom: 14px; font-size: 13px; }
-.import-error { color: #fca5a5; margin-bottom: 12px; }
+.import-tabs button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.import-desc { color: var(--text-3); line-height: 1.8; margin-bottom: 14px; font-size: 13px; }
+.import-error { color: var(--danger-ink); margin-bottom: 12px; }
 .source-row {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 9px 6px;
-  border-bottom: 0.5px solid var(--line);
+  border-bottom: 0.5px solid var(--border-1);
   font-size: 13px;
 }
 </style>

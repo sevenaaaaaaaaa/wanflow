@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import Icon from "./Icon.vue";
 import { api, fmtTime, thumbUrl, type AlbumItem, type AiStatus, type ScoredMedia } from "../api";
 
 const emit = defineEmits<{ close: []; refresh: [] }>();
@@ -9,7 +10,7 @@ const busy = ref(false);
 const progressMsg = ref("");
 const error = ref("");
 
-const tab = ref<"search" | "select" | "albums">("search");
+const tab = ref<"search" | "select" | "albums" | "agent">("search");
 
 // 搜索
 const searchQuery = ref("");
@@ -23,6 +24,11 @@ const selectResults = ref<ScoredMedia[]>([]);
 const selectParsed = ref("");
 const selectAlbumName = ref("");
 const albumSaved = ref(false);
+
+// 对话选片
+const agentPrompt = ref("");
+const agentResult = ref<{ items: ScoredMedia[]; reason: string; model: string } | null>(null);
+const agentBusy = ref(false);
 
 // 精选集
 const albums = ref<AlbumItem[]>([]);
@@ -126,6 +132,20 @@ async function saveAlbum() {
   }
 }
 
+async function doAgent() {
+  error.value = "";
+  agentBusy.value = true;
+  agentResult.value = null;
+  try {
+    const r = await api.agentSelect(agentPrompt.value);
+    agentResult.value = { items: r.items, reason: r.reason, model: r.model };
+  } catch (e) {
+    error.value = String(e);
+  } finally {
+    agentBusy.value = false;
+  }
+}
+
 async function openAlbumDetail(a: AlbumItem) {
   const items = await api.albumMedia(a.id);
   openAlbum.value = { name: a.name, items };
@@ -141,7 +161,7 @@ async function removeAlbum(id: number) {
   <div class="modal-mask" @mousedown.self="$emit('close')">
     <div class="modal" style="width: min(920px, 94vw)">
       <header>
-        ✨ 智能精选
+        <Icon name="sparkle" :size="13" /> 智能精选
         <span class="chip">{{ status?.embCount ?? 0 }}/{{ status?.imageCount ?? 0 }} 已索引</span>
         <span class="chip" :title="status?.ollamaModels.join('、')">
           Ollama {{ status?.ollamaReady ? "已检测到" : "未安装（可选）" }}
@@ -165,15 +185,16 @@ async function removeAlbum(id: number) {
             建立语义索引
           </button>
         </div>
-        <p v-if="progressMsg" class="ai-progress">⏳ {{ progressMsg }}</p>
+        <p v-if="progressMsg" class="ai-progress"><Icon name="time" :size="12" /> {{ progressMsg }}</p>
         <p v-if="error" class="import-error">{{ error }}</p>
 
         <div class="import-tabs" style="margin-top: 10px">
-          <button :class="{ on: tab === 'search' }" @click="tab = 'search'">🔍 语义搜索</button>
-          <button :class="{ on: tab === 'select' }" @click="tab = 'select'">🪄 智能精选</button>
+          <button :class="{ on: tab === 'search' }" @click="tab = 'search'"><Icon name="search" :size="12" /> 语义搜索</button>
+          <button :class="{ on: tab === 'select' }" @click="tab = 'select'"><Icon name="sparkle" :size="12" /> 智能精选</button>
           <button :class="{ on: tab === 'albums' }" @click="tab = 'albums'; refreshAlbums()">
-            📔 精选集 ({{ albums.length }})
+            <Icon name="album" :size="12" /> 精选集 ({{ albums.length }})
           </button>
+          <button :class="{ on: tab === 'agent' }" @click="tab = 'agent'"><Icon name="chat" :size="12" /> 对话选片</button>
         </div>
 
         <!-- 语义搜索 -->
@@ -222,8 +243,32 @@ async function removeAlbum(id: number) {
           <div v-if="selectResults.length > 0" class="form-row" style="margin-top: 14px">
             <input v-model="selectAlbumName" placeholder="精选集名字" style="flex: 1" />
             <button class="primary" @click="saveAlbum">
-              {{ albumSaved ? "✓ 已保存" : "存为精选集" }}
+              <Icon v-if="albumSaved" name="check" :size="12" /> {{ albumSaved ? "已保存" : "存为精选集" }}
             </button>
+          </div>
+        </div>
+
+        <!-- 对话选片 -->
+        <div v-else-if="tab === 'agent'">
+          <div class="form-row" style="margin-top: 12px">
+            <input
+              v-model="agentPrompt"
+              placeholder="跟万照聊聊：挑几张娃笑得最开心的，我要做周岁相册"
+              style="flex: 1"
+              @keyup.enter="doAgent"
+            />
+            <button class="primary" :disabled="agentBusy || !agentPrompt" @click="doAgent">
+              {{ agentBusy ? "思考中…" : "发送" }}
+            </button>
+          </div>
+          <p v-if="agentResult" class="hint" style="margin: 6px 0">
+            <Icon name="bulb" :size="12" /> {{ agentResult.reason }}（{{ agentResult.model }} 本地推理）
+          </p>
+          <div class="result-grid">
+            <div v-for="(m, i) in agentResult?.items ?? []" :key="m.id" class="result-card">
+              <img v-if="m.thumb" :src="thumbUrl({ thumb: m.thumb } as any)" loading="lazy" />
+              <span class="rank">{{ i + 1 }}</span>
+            </div>
           </div>
         </div>
 
@@ -236,7 +281,7 @@ async function removeAlbum(id: number) {
             <span class="hint">{{ fmtTime(a.createdAt) }}</span>
             <span class="spacer"></span>
             <button style="padding: 4px 10px" @click="openAlbumDetail(a)">查看</button>
-            <button style="padding: 4px 10px; color: #fca5a5" @click="removeAlbum(a.id)">删除</button>
+            <button style="padding: 4px 10px; color: var(--danger-ink)" @click="removeAlbum(a.id)">删除</button>
           </div>
         </div>
       </div>
@@ -268,7 +313,7 @@ async function removeAlbum(id: number) {
   display: flex;
   align-items: center;
   gap: 14px;
-  color: var(--muted);
+  color: var(--text-3);
   font-size: 13px;
 }
 .ai-ready p { flex: 1; line-height: 1.6; }
@@ -285,7 +330,7 @@ async function removeAlbum(id: number) {
   position: relative;
   border-radius: 10px;
   overflow: hidden;
-  background: var(--bg3);
+  background: var(--surface-2);
   aspect-ratio: 1;
 }
 .result-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -315,7 +360,7 @@ async function removeAlbum(id: number) {
   place-items: center;
 }
 .album-detail {
-  border-top: 0.5px solid var(--line);
+  border-top: 0.5px solid var(--border-1);
   padding: 12px 18px 16px;
   max-height: 40vh;
   overflow-y: auto;

@@ -114,12 +114,8 @@
   --font-display: "Lora", "New York", "Iowan Old Style", ui-serif, "Songti SC", "Noto Serif SC", Georgia, serif;
 
   /* 动效五档 */
-  --dur-1: .12s; --dur-2: .18s; --dur-3: .28s; --dur-4: .45s; --dur-5: .62s;
-  --ease-spring: cubic-bezier(.32,.72,0,1);
+  --dur-1: .12s; --dur-2: .20s; --dur-3: .28s; --dur-4: .45s; --dur-5: .62s;
   --ease-out: cubic-bezier(.22,1,.36,1);
-  --ease-in: cubic-bezier(.4,0,1,1);
-  --ease-in-out: cubic-bezier(.65,0,.35,1);
-  --ease-bounce: cubic-bezier(.34,1.56,.64,1);
 
   /* 焦点环：键盘可见，鼠标不打扰 */
   --focus-ring: 0 0 0 2px var(--bg-1), 0 0 0 4px rgb(34 184 211 / .55);

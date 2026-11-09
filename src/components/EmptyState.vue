@@ -2,7 +2,7 @@
 import { ref } from "vue";
 import Icon from "./Icon.vue";
 
-const emit = defineEmits<{ pick: [kind: "folder" | "photos"] }>();
+const emit = defineEmits<{ pick: [kind: "folder" | "photos"]; checkUpdate: [] }>();
 
 // 版本号来自 package.json（vite define），发版不再需要手改界面
 const version = __APP_VERSION__;
@@ -23,7 +23,10 @@ function reset() {
   <div class="empty">
     <header class="empty-head">
       <span class="brand">Wan<em>Flow</em></span>
-      <span class="ver">v{{ version }} · 本地优先</span>
+      <span class="ver-wrap">
+        <span class="ver">v{{ version }} · 本地优先</span>
+        <button class="ver-btn" @click="emit('checkUpdate')">检查更新</button>
+      </span>
     </header>
 
     <div class="hero">
@@ -125,6 +128,18 @@ function reset() {
   letter-spacing: .04em;
   color: var(--text-4);
 }
+.empty-head .ver-wrap { display: inline-flex; align-items: baseline; gap: 10px; }
+.empty-head .ver-btn {
+  font-family: var(--font-mono);
+  font-size: var(--fs-1);
+  letter-spacing: .04em;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.empty-head .ver-btn:hover { color: var(--accent-strong); }
 .copy { min-width: 0; }
 .eyebrow {
   display: inline-flex;
@@ -323,8 +338,8 @@ h1 em {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--accent-soft, rgb(8 145 178 / .14));
-  color: var(--accent-ink, #0e7490);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
 }
 .shot b { font-size: 17px; font-weight: 500; letter-spacing: -.01em; color: oklch(30% .012 85); }
 .shot .stamp span { font-size: 11px; color: oklch(46% .012 85); }

@@ -548,3 +548,86 @@ sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
 **别踩**
 - 以后再改版本号：**只改 package.json + tauri.conf.json + Cargo.toml 三处**，界面会自己跟上（0.2.0 前不是这样）。
 - `src/env.d.ts` 不能删，删了 `__APP_VERSION__` 会变成未声明全局。
+
+---
+
+## 2026-11-07 22:20 · DSH / lead · 开发机（macOS）
+
+**做到哪**：按用户要求同步远端。`git fetch --prune` 拿到标签 v0.1.0 / v0.2.0 / v0.2.1，`main` 从 ac6b71c 快进到 34e9a95（44 个提交，+7319/−618）。同步前工作区有 21 处未提交改动（12 个已跟踪修改 + 9 个未跟踪文件/目录：faces.rs / family.rs / chat.rs / FamilyPanel.vue / agent_e2e.rs / face_e2e.rs / family_bench.rs / assets/ / docs/DESIGN.md，10-25~10-29 期间其他 agent 遗留），已整体 `git stash push -u` 存为 stash@{0}，一个字节未丢。
+
+**为什么停**：同步完成。这批 WIP（family/faces/chat 功能线，基线是旧的 ac6b71c）是否恢复到 v0.2.1 新基线上，等用户决定。
+
+**下一个动作**：`npm install`（package-lock 随 0.2.0/0.2.1 有锁定提交，node_modules 可能落后），然后 `npm run tauri dev` 验证 0.2.1。
+
+**别踩**：
+- faces.rs / family.rs / chat.rs 等**没有丢**，在 stash@{0}；恢复用 `git stash pop`（先 `git stash show -p stash@{0}` 过目）。
+- 恢复时 9 个文件（App.vue、api.ts、SmartPanel.vue、lib.rs、db.rs、clip.rs、smart.rs、commands.rs、embed_bench.rs）远端同样改过，大概率要解决冲突，pop 后别直接当能编译。
+- stash 里的 `assets/tokens.css`、`docs/DESIGN.md` 是旧设计草案；现行口径是 `design-system/wanflow/MASTER.md` + `src/tokens.css`，恢复时别两套混用。
+
+**验证方式**：`git log --oneline -1` 应为 34e9a95；`git status --short` 只应有 STATE.md / HANDOFF.md；`git stash list` 应有 1 条。
+
+**未提交的改动**：STATE.md、HANDOFF.md（本条收工记录，如需入库走 `docs:` 提交）。
+
+---
+
+## 2026-11-07 23:35 · DSH / lead · 开发机（macOS）
+
+**做到哪**：两项功能完成，全部落在分支 `crew/family-ai-update-check`（未推送）：
+
+1. **家人/人脸/AI 功能线恢复合并**：stash 先固化为永久快照 3346fd4（旧基线 ac6b71c），再合并进 v0.2.1（a743b26）。新增 faces.rs（386 行）/ family.rs（435）/ chat.rs（302）/ FamilyPanel.vue（189），lib.rs 注册 7 个命令（family_* ×6 + agent_select），App.vue 接入家人面板与 clip://done|error 事件回传，api.ts 补 4 个类型 + 7 个方法。冲突仅 3 个文件（lib.rs / App.vue / api.ts），按「新版结构优先、旧功能全部移植」解决；另加 users 图标（2a398ef）。
+2. **应用内检查更新**（e1de2cb）：`api.checkUpdate` 匿名调 GitHub Releases API 与 `__APP_VERSION__` 比对；入口两处：⌘K「帮助 → 检查更新…」、欢迎页版本行「检查更新」；发现新版时复制 dmg 地址到剪贴板并 toast，限流/断网时 toast 说明原因。
+
+**为什么停**：功能完成待用户验收；未推送、未合并 main、未重新打包。
+
+**下一个动作**：验收通过后 `git push -u origin crew/family-ai-update-check` → 合并 main → `npm run tauri build` 出新安装包并替换 /Applications/WanFlow.app；验收前可先 `npm run tauri dev` 真机点一遍。
+
+**别踩**：
+- 旧库 faces 表已有 2405 行聚类数据（10 月开发版跑的），persons 为空：FamilyPanel 首开会显示未命名聚类，注册名字后才能按人筛选；agent_select 走 Ollama，未装时按钮会提示「未安装」。
+- 合并把旧设计文档带回来了：`docs/DESIGN.md` + `assets/tokens.css` 是旧体系存档，口径已在 AGENTS.md 改为 `design-system/wanflow/MASTER.md` + `src/tokens.css`。
+- 存量组件有硬编码色（Arena / DupPanel / SmartPanel / EmptyState），属 v0.2.1 遗留，新代码不得新增，待专项清理。
+
+**验证方式**：`cargo test`（54 绿 / 0 失败）+ `npm run build`（611ms）+ 浏览器冒烟截图 `docs/shots/smoke-update-check.png`（⌘K 检查更新 → toast「已是最新版本 v0.2.1」）。
+
+**未提交的改动**：无（本段与截图一并提交）。
+
+---
+
+## 2026-11-09 12:05 · DSH / lead · 开发机（macOS）
+
+**做到哪**：按两轮设计审计（unslop + landing-page-design）合并结论的 Top1-3 完成整改，提交 903a4fd：
+1) 面板 emoji 全部换成线框图标（13 处：SmartPanel 6 / SuggestionsPanel 4 / Arena 2 / FamilyPanel 1），Icon.vue 新增 album / bulb / camera / blur / trophy / exposure 六个图标，规格沿用 16×16、stroke 1.6、currentColor；
+2) 非 token 颜色归位：\`#fca5a5\` → \`--danger-ink\`（6 个文件）、\`#fff\` on accent → \`--on-accent\`、EmptyState 回退 hex 删除、Arena 从旧主题（--bg2/--bg3/--line/--muted）整体迁移到现行 token（surface/border/text/hover），并把 2px 边框、40px 横向滑入、0.18s ease 收敛；
+3) 动效收敛：删除 ease-spring / ease-bounce / ease-in / ease-in-out 曲线（保留唯一 --ease-out），18 处弹簧过渡改基础曲线，悬停位移 -5px 收到 -2px，胶片格入场从 scale(.94)+translateY(10px) 改 translateY(4px) 淡入，\`--dur-2\` 18→20ms 对齐 200ms 下限。
+
+**为什么停**：Top1-3 完成待验收；Top4（间距/字号尺度化）与 Top5（演示样片假照片）未做。
+
+**下一个动作**：真机 \`npm run tauri dev\` 看三个面板（精选 / 家人 / 连拍对比）图标与颜色；验收后推送分支 → 合并 main → 打包。
+
+**别踩**：Arena.vue 之前整套用的是旧主题变量（--bg2 等），换主题只换了一半会翻车——本次已整体迁移，若后续又见 var(--bg2)/var(--line) 即回退。
+
+**验证方式**：\`npm run build\` 通过（1.09s）；残留扫描 0 处（ease-spring/ease-bounce/fca5a5/旧变量）；浏览器冒烟：智能面板与家人面板图标正常（截图 /tmp/unslop-audit/03-smartpanel.png、04-family.png）。
+
+**未提交的改动**：无（STATE/HANDOFF 随后随本条提交）。
+
+---
+
+## 2026-11-09 09:50 · DSH / lead · 开发机（macOS）
+
+**做到哪**：v0.2.2 收尾 + 打包 + 本地替换，提交 1a7a1d4。
+1) 上一轮漏网的两处 `⏳`（FamilyPanel:120、SmartPanel:188）改成 `<Icon name="time" :size="12" />`，动效保持静态（上一轮刚收敛，没加转圈）；
+2) `package.json` / `package-lock.json` / `src-tauri/tauri.conf.json` / `src-tauri/Cargo.toml` 四处置 0.2.2；
+3) release 构建出 `WanFlow.app`（48M，Info.plist 0.2.2）与 `WanFlow_0.2.2_aarch64.dmg`（18,845,063 B ≈ 18.0 MiB，`hdiutil verify` VALID，sha256 `f27d34bb603ac358c2546c050cd97957764fa417bd516bed319e43069abdb578`）；
+4) `/Applications/WanFlow.app` 先备份到 `/tmp/WanFlow-backup-0.2.1.app` 再替换，启动确认 0.2.2 在跑。
+
+**为什么停**：push 分支、合并 main、发 GitHub Release 三件事都要用户逐条点头（项目规矩），本轮只做到本机可运行。
+
+**下一个动作**：`git push -u origin crew/family-ai-update-check` → 合并 main → `git tag v0.2.2 && git push origin v0.2.2` → 用上面那个 dmg 发 Release。
+
+**别踩**：
+- `npm run tauri build` 的 dmg 步骤会挂死（bundle_dmg.sh 走 osascript 让 Finder 排版，无 GUI 权限时永久卡住，本次卡 70s+ 日志零增长）。kill 掉卡住的 osascript 后 `.app` 已在 `bundle/macos/`，用 `hdiutil create -volname WanFlow -srcfolder <WanFlow.app> -ov -format UDZO <out>.dmg` 兜底出包即可。
+- 上一轮的证据截图在 `/tmp/unslop-audit/`（01-default / 02-toolbar / 03-smartpanel / 04-family），属临时目录，要留档得自己搬进 `docs/shots/`。
+- 本机 System Events 读窗口数不可靠（本次 Finder 也返回 0），核窗口用 CoreGraphics：`CGWindowListCopyWindowInfo` 能看到 WanFlow 两个窗口（主窗 1360×860 onscreen）。
+
+**验证方式**：`npm run build` 1.50s / 56 modules；`grep -rn '⏳' src/` → 0；`hdiutil verify` → checksum VALID；`defaults read /Applications/WanFlow.app/Contents/Info.plist CFBundleShortVersionString` → 0.2.2。
+
+**未提交的改动**：无。

@@ -36,7 +36,7 @@ fn create_source(
     Ok(conn.last_insert_rowid())
 }
 
-fn guard_scan(state: &State<'_, AppState>) -> Result<(), String> {
+pub(crate) fn guard_scan(state: &State<'_, AppState>) -> Result<(), String> {
     let mut s = lock(&state.scan);
     if s.running {
         return Err("已有导入/扫描在进行中".into());

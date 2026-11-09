@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
+import Icon from "./Icon.vue";
 import { api, fmtBytes, fmtTime, previewUrl, type MediaItem } from "../api";
 
 const props = defineProps<{ group: number }>();
@@ -104,7 +105,7 @@ const verdict = computed(() => {
         </div>
       </div>
 
-      <p v-if="!done && left && right" class="arena-verdict">💡 {{ verdict }}</p>
+      <p v-if="!done && left && right" class="arena-verdict"><Icon name="bulb" :size="12" /> {{ verdict }}</p>
 
       <div v-if="!done && left && right" class="arena-actions">
         <button class="primary" @click="act('left')">留左（←）</button>
@@ -114,7 +115,7 @@ const verdict = computed(() => {
       </div>
 
       <div v-if="done" class="arena-done">
-        <div class="logo">🏆</div>
+        <div class="logo"><Icon name="trophy" :size="22" /></div>
         <p>这组比完了，赢家已标"保留"，其余标"淘汰"（可在历史撤销）。</p>
         <button class="primary" @click="$emit('close')">好的</button>
       </div>
@@ -126,24 +127,24 @@ const verdict = computed(() => {
 .arena-mask {
   position: fixed;
   inset: 0;
-  background: rgba(5, 6, 10, 0.9);
+  background: color-mix(in oklab, var(--bg-0) 82%, transparent);
   z-index: 120;
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: fadeIn 0.18s ease;
+  animation: fadeIn var(--dur-2) var(--ease-out);
 }
 .arena {
   width: min(1080px, 94vw);
   max-height: 92vh;
-  background: var(--bg2);
-  border: 0.5px solid var(--line);
+  background: var(--surface-1);
+  border: 0.5px solid var(--border-1);
   border-radius: 16px;
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  animation: popIn 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+  animation: popIn var(--dur-2) var(--ease-out);
 }
 .arena-head { display: flex; align-items: center; gap: 10px; }
 .arena-stage {
@@ -157,40 +158,39 @@ const verdict = computed(() => {
   max-width: 46%;
   border-radius: 12px;
   overflow: hidden;
-  background: var(--bg3);
-  border: 2px solid var(--line);
-  animation: popIn 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+  background: var(--surface-2);
+  border: 0.5px solid var(--border-1);
+  animation: popIn var(--dur-2) var(--ease-out);
 }
 .arena-card.is-left { animation-name: slideL; }
 .arena-card.is-right { animation-name: slideR; }
-@keyframes slideL { from { transform: translateX(-40px); opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes slideR { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes slideL { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes slideR { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
 .arena-card img {
   width: 100%;
   max-height: 46vh;
   object-fit: contain;
-  background: #10131c;
+  background: var(--bg-1);
   display: block;
 }
-.arena-meta { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); }
-.arena-meta b { color: var(--text); font-size: 14px; }
+.arena-meta { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-3); }
+.arena-meta b { color: var(--text-1); font-size: 14px; }
 .arena-bars { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
 .arena-bar { display: flex; align-items: center; gap: 8px; font-size: 11px; }
 .arena-bar .track {
   flex: 1;
   height: 6px;
   border-radius: 3px;
-  background: #12151f;
+  background: var(--hover);
   overflow: hidden;
 }
 .arena-bar .fill {
   height: 100%;
   background: var(--accent);
-  transition: width 0.4s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
-.arena-bar em { font-style: normal; min-width: 24px; text-align: right; color: var(--text); }
-.arena-verdict { text-align: center; color: var(--text); font-size: 13.5px; background: var(--bg3); border-radius: 10px; padding: 8px 14px; }
+.arena-bar em { font-style: normal; min-width: 24px; text-align: right; color: var(--text-1); }
+.arena-verdict { text-align: center; color: var(--text-1); font-size: 13.5px; background: var(--hover); border-radius: 10px; padding: 8px 14px; }
 .arena-actions { display: flex; gap: 10px; justify-content: center; }
-.arena-actions button { font-size: 14px; padding: 9px 18px; }
+.arena-actions button { font-size: 14px; padding: 8px 14px; }
 .arena-done { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 30px 0 16px; }
 </style>

@@ -27,6 +27,24 @@
 
 **以上命令以本表为准。** 表里没有的，先问，不要自己发明（尤其不要 `pnpm install`，装出来的 electron/tauri 依赖版本可能对不上）。
 
+## 设计规范（强制，做任何界面之前先读）
+
+**当前口径（v0.2 起）：`design-system/wanflow/MASTER.md`（设计系统）+ `src/tokens.css`（令牌：暖纸底 / 中性石墨 / calm teal）。**
+`docs/DESIGN.md` 与 `assets/tokens.css` 是 10 月旧视觉体系（OpenFlow v6）的存档，仅作参考，不再是口径。
+
+四条不可协商：
+
+1. **颜色只从 token 来。** 新代码零 hex、零 rgb、零 Tailwind 类；派生用 `color-mix(in oklab, …)`。存量违例（Arena.vue / DupPanel.vue / SmartPanel.vue / EmptyState.vue 少量硬编码色）属 v0.2.1 遗留，待专项清理；**新改动不得新增**。
+2. **图标只有一种**：走 `src/components/Icon.vue`（16×16 viewBox、stroke 1.6、`currentColor` 线框图标，缺什么往里补）。**不直出 emoji**。
+3. **三档降档**：≤1080 / ≤860 / ≤640，亮暗两套各看一遍。
+4. **零件不自造**：先在 `design-system/wanflow/MASTER.md` 里找；找不到才新增，且先留在页面样式里。
+
+提交前自检（本次改动零违例才算过）：
+
+```bash
+git diff --name-only | grep '\.vue$' | xargs grep -nE '#[0-9a-fA-F]{3,8}\b|\brgba?\(' 2>/dev/null || echo "✓ 本次改动无硬编码颜色"
+```
+
 ## 目录禁忌
 
 | 路径 | 规则 |
