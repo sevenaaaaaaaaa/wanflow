@@ -649,6 +649,28 @@ sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
 
 **验证方式**：二次跑改写脚本 → 0 处（幂等）；`grep -ro 'var(--sp-' src/ | wc -l` → 402；裸 px 间距残留 0；`npm run build` 693ms 通过；解析比对 IDENTICAL。
 
+---
+
+## 2026-11-09 11:00 · DSH / lead · 开发机（macOS）
+
+**做到哪**：把间距 token 化按 0.2.3 发出去。
+1) 版本四处置 0.2.3（1b23882 + Cargo.lock 56cd4ac）；
+2) `npm run tauri build -- --bundles app` —— **绕过 dmg 步骤**（已知会卡），只出 `.app`（48.09 MiB），再用 `hdiutil create -volname WanFlow -srcfolder <WanFlow.app> -ov -format UDZO <out>.dmg` 出 dmg（18,844,512 B，sha256 `def3a566e84efa4555078a9514cc82e1914b57c38e1ff692b0e71353570ab01e`）；
+3) `/Applications/WanFlow.app` 备份 0.2.2 → 替换为 0.2.3（`/tmp/WanFlow-backup-0.2.2.app`），启动后 CoreGraphics 确认主窗 1360×860 onscreen；
+4) 推 main → tag v0.2.3 → `gh release create` 附 dmg（Latest，asset uploaded），main 上 CI success。
+
+**为什么停**：本轮工作全部发出，无剩余步骤。
+
+**下一个动作**：下一轮做 B 案（间距向 4pt 网格收敛，按页面推进）+ Top5（空状态演示样片换真照片）。
+
+**别踩**：
+- `tauri build` 加 `--bundles app` 就不会进 bundle_dmg.sh，dmg 自己用 hdiutil 出，稳。
+- 发版后 `Cargo.lock` 会被 build 改一行版本号，记得单独提交（`chore: Cargo.lock 版本字段跟随 x.y.z`）。
+
+**验证方式**：app = 48.09 MiB / Info.plist 0.2.3；dmg 校验 sha256 与 Release 资产一致（18,844,512 B）；`gh release view v0.2.3` → Latest、asset uploaded；CI success。
+
+**未提交的改动**：无。
+
 **未提交的改动**：无。
 
 **未提交的改动**：无。

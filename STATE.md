@@ -7,7 +7,7 @@
 
 ## 一句话现状
 
-v0.2.2（2026-11-09：审计整改 Top1-3 + 进度提示改线框图标 + 版本号抬到 0.2.2；本地 `/Applications/WanFlow.app` 已换成 0.2.2；dmg `WanFlow_0.2.2_aarch64.dmg` 18.0 MiB、sha256 `f27d34bb…`；已推 main、打 tag v0.2.2、发 GitHub Release（Latest）、main 上 CI 绿（14s））。上一版 v0.2.1（2026-11-07 已发版，arm64 dmg，未签名/未公证；暖纸 + 青的视觉、浅色默认；修了欢迎页版本号写死）。**从导入到交付的闭环已打通**：导入（文件夹 / 照片图库 / WebDAV）→ 扫描 → 质量分析 → 去重与连拍分组 → 初筛建议 → 人工决策 → 智能精选 / 语义搜索 → **精选集导出**（dry-run 预览 + 副本导出，支持目录结构、命名模板、剥离 EXIF、改写时间、导出清单幂等）。
+v0.2.3（2026-11-09：间距全部改走 token，292 处、零观感；本地 `/Applications/WanFlow.app` 已换成 0.2.3；dmg `WanFlow_0.2.3_aarch64.dmg` 17.97 MiB、sha256 `def3a566…`；tag v0.2.3 + GitHub Release Latest + main 上 CI 绿）。上一版 v0.2.2（2026-11-09：审计整改 Top1-3 + 进度提示图标；Release 提供 arm64 dmg，未签名/未公证）。更早 v0.2.1（2026-11-07：暖纸 + 青的视觉、浅色默认；修了欢迎页版本号写死）。**从导入到交付的闭环已打通**：导入（文件夹 / 照片图库 / WebDAV）→ 扫描 → 质量分析 → 去重与连拍分组 → 初筛建议 → 人工决策 → 智能精选 / 语义搜索 → **精选集导出**（dry-run 预览 + 副本导出，支持目录结构、命名模板、剥离 EXIF、改写时间、导出清单幂等）。
 规模：Rust `src-tauri/src` 5754 行 / 前端 `src` 5743 行；**34 个 Tauri 命令**；`cargo test` **53 个测试全绿**（另有 `tests/scene_calibration.rs` 手工校准工具，默认 ignored）；`npm run build` 通过。
 交互：**故事线三种成页——按天 / 按事件（边界 = 6h 间隔，设备不参与）/ 按场景**（场景键读 `media.scene_group`；没有索引时回退事件并提示，左栏有「重建场景」入口；真实库已建索引：30/30 张有向量、30 场——这 30 张彼此无关，每张一场）+ 定量显影 + Litmus 风格 token（`src/tokens.css`）+ 键盘优先挑图 + ⌘K 命令面板 + 浮动 Dock 动作栏 + 明暗双主题。视觉已去特效：**单张纸**、无快门白闪 / 整页飞行 / 旋转堆叠；浏览器演示库改用摄影感样片（仅 DEV，生产构建 tree-shake）。2026-11-06 又按微件视觉规范做了一轮**扁平化**（`52ac1c5`）：去掉投影 / 毛玻璃 / 背景辉光 / 相纸颗粒与显影白闪，字重只留 400 与 500，最小字号 11px，边框统一 0.5px；浮层改不透明表面色。同日晚些时候按 `ui-ux-pro-max` 生成了设计系统并落盘 `design-system/wanflow/MASTER.md`（Organic Biophilic：sage neutral + calm teal），`src/tokens.css` 换成暖纸底 / 中性石墨 / 单一青强调，投影只回给浮层（弹窗、命令面板、抽屉、灯箱、Dock、相纸、引导卡），两套主题按同一色板对齐。2026-11-07 把浅色设为默认（首帧定主题，不闪深色），版本升 0.2.0 并发版。
 入口与引导：空状态**可直接玩一页**（改张数/显影/再玩一次），两个导入入口直接落到对应 tab；顶栏只保留一个动作入口「**继续整理 N 张**」；首次运行自动开 **4 步跟随式引导**（做一步自动前进，`?` 重放，Esc/先不看写 localStorage）。
@@ -26,7 +26,7 @@ v0.2.2（2026-11-09：审计整改 Top1-3 + 进度提示改线框图标 + 版本
 | 家人 / 人脸 / AI 功能线（恢复合并） | 已合并到 v0.2.1 基线（3346fd4 快照 → a743b26 合并）；cargo test 54 绿、npm run build 通过；顶栏「家人」入口 + FamilyPanel 就位 | 需真机 `npm run tauri dev` 验收：人脸聚类质量、家人注册/按人筛选、AI 精选（agent_select 走 Ollama）；未发版 | DSH / lead（2026-11-07） |
 | 应用内检查更新 | 已实现并冒烟：⌘K「帮助 → 检查更新…」+ 欢迎页版本行入口；匿名调 GitHub Release 比对 `__APP_VERSION__`；截图 docs/shots/smoke-update-check.png | 真机验收；随下次发版生效 | DSH / lead（2026-11-07） |
 | 视觉审计整改（unslop × landing-page-design） | Top1-3 已完成（903a4fd）：面板 emoji→线框图标 13 处（新增 6 个图标）、非 token 色归位（#fca5a5→--danger-ink、#fff→--on-accent、Arena 旧主题迁移）、动效收敛（删弹簧/弹跳曲线、悬停位移 ≤2px、入场改淡入、--dur-2 对齐 200ms）；`npm run build` 通过 | Top4（间距/字号尺度化）与 Top5（演示样片假照片）未做，需单独排期 | DSH / lead（2026-11-09） |
-| 间距 token 化（Top4-A） | ab1e56b：292 处间距声明 → `var(--sp-<px>)`，13 个组件/样式文件；`tokens.css` 间距阶梯改成按像素值命名并补全现有 29 个值；4 处 12.5/13.5px 字号回 `--fs-2/--fs-3`；`var(--sp-*)` 使用 402 次、裸 px 残余 0；**解析 token 后编译产物与改动前逐字符相同（零观感）** | 下一轮才是向 4pt 网格收敛（B 案，观感会变）；另有 `.ai-progress` 的硬编码紫 `#a78bfa` 未处理（无对应 token，换色会改观感，待定） | DSH / lead（2026-11-09） |
+| 间距 token 化（Top4-A） | ab1e56b：292 处间距声明 → `var(--sp-<px>)`，13 个组件/样式文件；`tokens.css` 间距阶梯改成按像素值命名并补全现有 29 个值；4 处 12.5/13.5px 字号回 `--fs-2/--fs-3`；`var(--sp-*)` 使用 402 次、裸 px 残余 0；**解析 token 后编译产物与改动前逐字符相同（零观感）** | 已随 **0.2.3 发版**；下一轮才是向 4pt 网格收敛（B 案，观感会变）；另有 `.ai-progress` 的硬编码紫 `#a78bfa` 未处理（无对应 token，换色会改观感，待定） | DSH / lead（2026-11-09） |
 | v0.2.2 收尾 | 1a7a1d4：进度提示 ⏳ → `Icon time`（FamilyPanel/SmartPanel 各 1 处），package / package-lock / tauri.conf / Cargo 四处置 0.2.2；`npm run build` 1.50s 通过、`src/` 内 ⏳ 残留 0；release 产物 `WanFlow.app` 48M（Info.plist 0.2.2）、dmg 18.0 MiB 校验通过；`/Applications/WanFlow.app` 已替换并启动（2 窗口：主窗 1360×860） | 真机点一遍进度提示外观；**push 分支 / 合并 main / 发 GitHub Release 待授权** | DSH / lead（2026-11-09） |
 
 ## 下一步（按先后顺序）
@@ -60,6 +60,7 @@ v0.2.2（2026-11-09：审计整改 Top1-3 + 进度提示改线框图标 + 版本
 | 日期 | 做了什么 | 回滚方式 |
 |---|---|---|
 | 2026-11-07 | `feat`: 恢复家人/人脸/AI 功能线并合并到 v0.2.1（faces/family/chat + FamilyPanel + AI 事件回传）— 3346fd4 / a743b26 | `git revert -m 1 a743b26`（去功能线、留 v0.2.1） |
+| 2026-11-09 | `chore`: 发版 v0.2.3（间距 token 化；dmg 17.97 MiB / sha256 `def3a566…`；Release Latest；CI 绿）— 56cd4ac / tag v0.2.3 | 发新版本修，**不删 tag** |
 | 2026-11-09 | `refactor`: 间距改走 token（零观感，292 处 / 402 次引用）— ab1e56b | `git revert ab1e56b` |
 | 2026-11-09 | `chore`: 发版 v0.2.2（dmg 18.0 MiB / sha256 `f27d34bb…`；GitHub Release Latest；CI 绿）— 7386647 / tag v0.2.2 | 发新版本修，**不删 tag** |
 | 2026-11-09 | `fix`: 进度提示 ⏳ 改线框图标 + 版本抬到 0.2.2 — 1a7a1d4 | `git revert 1a7a1d4` |
