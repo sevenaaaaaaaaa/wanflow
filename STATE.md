@@ -26,6 +26,7 @@ v0.2.2（2026-11-09：审计整改 Top1-3 + 进度提示改线框图标 + 版本
 | 家人 / 人脸 / AI 功能线（恢复合并） | 已合并到 v0.2.1 基线（3346fd4 快照 → a743b26 合并）；cargo test 54 绿、npm run build 通过；顶栏「家人」入口 + FamilyPanel 就位 | 需真机 `npm run tauri dev` 验收：人脸聚类质量、家人注册/按人筛选、AI 精选（agent_select 走 Ollama）；未发版 | DSH / lead（2026-11-07） |
 | 应用内检查更新 | 已实现并冒烟：⌘K「帮助 → 检查更新…」+ 欢迎页版本行入口；匿名调 GitHub Release 比对 `__APP_VERSION__`；截图 docs/shots/smoke-update-check.png | 真机验收；随下次发版生效 | DSH / lead（2026-11-07） |
 | 视觉审计整改（unslop × landing-page-design） | Top1-3 已完成（903a4fd）：面板 emoji→线框图标 13 处（新增 6 个图标）、非 token 色归位（#fca5a5→--danger-ink、#fff→--on-accent、Arena 旧主题迁移）、动效收敛（删弹簧/弹跳曲线、悬停位移 ≤2px、入场改淡入、--dur-2 对齐 200ms）；`npm run build` 通过 | Top4（间距/字号尺度化）与 Top5（演示样片假照片）未做，需单独排期 | DSH / lead（2026-11-09） |
+| 间距 token 化（Top4-A） | ab1e56b：292 处间距声明 → `var(--sp-<px>)`，13 个组件/样式文件；`tokens.css` 间距阶梯改成按像素值命名并补全现有 29 个值；4 处 12.5/13.5px 字号回 `--fs-2/--fs-3`；`var(--sp-*)` 使用 402 次、裸 px 残余 0；**解析 token 后编译产物与改动前逐字符相同（零观感）** | 下一轮才是向 4pt 网格收敛（B 案，观感会变）；另有 `.ai-progress` 的硬编码紫 `#a78bfa` 未处理（无对应 token，换色会改观感，待定） | DSH / lead（2026-11-09） |
 | v0.2.2 收尾 | 1a7a1d4：进度提示 ⏳ → `Icon time`（FamilyPanel/SmartPanel 各 1 处），package / package-lock / tauri.conf / Cargo 四处置 0.2.2；`npm run build` 1.50s 通过、`src/` 内 ⏳ 残留 0；release 产物 `WanFlow.app` 48M（Info.plist 0.2.2）、dmg 18.0 MiB 校验通过；`/Applications/WanFlow.app` 已替换并启动（2 窗口：主窗 1360×860） | 真机点一遍进度提示外观；**push 分支 / 合并 main / 发 GitHub Release 待授权** | DSH / lead（2026-11-09） |
 
 ## 下一步（按先后顺序）
@@ -59,6 +60,7 @@ v0.2.2（2026-11-09：审计整改 Top1-3 + 进度提示改线框图标 + 版本
 | 日期 | 做了什么 | 回滚方式 |
 |---|---|---|
 | 2026-11-07 | `feat`: 恢复家人/人脸/AI 功能线并合并到 v0.2.1（faces/family/chat + FamilyPanel + AI 事件回传）— 3346fd4 / a743b26 | `git revert -m 1 a743b26`（去功能线、留 v0.2.1） |
+| 2026-11-09 | `refactor`: 间距改走 token（零观感，292 处 / 402 次引用）— ab1e56b | `git revert ab1e56b` |
 | 2026-11-09 | `chore`: 发版 v0.2.2（dmg 18.0 MiB / sha256 `f27d34bb…`；GitHub Release Latest；CI 绿）— 7386647 / tag v0.2.2 | 发新版本修，**不删 tag** |
 | 2026-11-09 | `fix`: 进度提示 ⏳ 改线框图标 + 版本抬到 0.2.2 — 1a7a1d4 | `git revert 1a7a1d4` |
 | 2026-11-09 | `refactor`: 审计整改 Top1-3（去 emoji 图标、颜色归位、动效收敛）— 903a4fd | `git revert 903a4fd` |

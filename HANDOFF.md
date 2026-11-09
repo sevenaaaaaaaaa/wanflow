@@ -630,4 +630,25 @@ sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
 
 **验证方式**：`npm run build` 1.50s / 56 modules；`grep -rn '⏳' src/` → 0；`hdiutil verify` → checksum VALID；`defaults read /Applications/WanFlow.app/Contents/Info.plist CFBundleShortVersionString` → 0.2.2。
 
+---
+
+## 2026-11-09 11:05 · DSH / lead · 开发机（macOS）
+
+**做到哪**：Top4 选 A 案（只具名、不改观感），提交 ab1e56b。
+1) `tokens.css`：间距阶梯从「`--sp-1..8` = 4/8/12/16/24/32/48/64」改成**按像素值命名**「`--sp-<px>`」，并补全代码里实际在用的 29 个值（1/1.5/2/2.5/3/4/5/6/7/8/9/10/11/12/13/14/15/16/18/20/22/24/26/28/30/34/40/56/84）。旧 8 档此前**使用次数为 0**，改名无风险。
+2) 292 处间距声明（padding/margin/gap 及长写）里的裸 px 改成 `var(--sp-<px>)`，涉及 13 个文件（Storyline 105 处、styles.css 68 处最多）；负值走 `calc(-1 * var(--sp-N))`；`1.5px/2.5px` 用 `--sp-1_5`/`--sp-2_5`。
+3) 4 处 `12.5px/13.5px` 字号回 `--fs-2/--fs-3`（与 token 值完全相同，零观感）。
+
+**为什么停**：A 案到此为止。真正的 4pt 网格收敛（10/14/18/9/7 → 8/12/16）会改观感，属 B 案，要逐页截图核对，单独排。
+
+**下一个动作**：真机看一眼确认没崩；然后决定要不要推 main。
+
+**别踩**：
+- **验证靠「解析后逐字符比对」**，不是靠目测：先 `cp dist/assets/*.css /tmp/before.css`，改完再 build 出 `/tmp/after.css`，把 `var(--sp-N)` 还原成 `Npx`、`calc(-1 * var(--sp-N))` 还原成 `-Npx`，再把 padding/margin 简写展开成 4 值、把 `data-v-<hash>` 与 keyframes 后缀 hash 抹平，两侧应完全相同（本次 IDENTICAL）。脚本 /tmp/refactor-spacing.mjs、/tmp/verify-css.mjs 可复用。
+- `.ai-progress { color: #a78bfa }` 是仍未处理的硬编码紫（v0.2.1 留存），本次只改了同一行的 margin，未动颜色。
+
+**验证方式**：二次跑改写脚本 → 0 处（幂等）；`grep -ro 'var(--sp-' src/ | wc -l` → 402；裸 px 间距残留 0；`npm run build` 693ms 通过；解析比对 IDENTICAL。
+
+**未提交的改动**：无。
+
 **未提交的改动**：无。
