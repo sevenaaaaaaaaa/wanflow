@@ -171,6 +171,12 @@ export interface AlbumItem {
   createdAt: number;
 }
 
+export interface TagItem {
+  id: number;
+  name: string;
+  count: number;
+}
+
 export interface ExportOptions {
   destDir: string;
   scope: "album" | "keeps" | "selection";
@@ -286,6 +292,7 @@ export const api = {
     sort?: string;
     dir?: string;
     dupOnly?: boolean;
+    tagId?: number;
     offset?: number;
     limit?: number;
   }) => invoke<ListResult>("list_media", { query }),
@@ -312,6 +319,9 @@ export const api = {
   smartSelect: (prompt: string, pool?: string) =>
     invoke<SmartSelectResult>("smart_select", { query: { prompt, pool } }),
   listAlbums: () => invoke<AlbumItem[]>("list_albums"),
+  listTags: () => invoke<TagItem[]>("tag_list"),
+  assignTags: (ids: number[], name: string, remove = false) =>
+    invoke<string>("tag_assign", { ids, name, remove }),
   createAlbum: (name: string, ids: number[], scores?: number[]) =>
     invoke<number>("create_album", { name, ids, scores }),
   deleteAlbum: (id: number) => invoke<void>("delete_album", { id }),

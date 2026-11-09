@@ -486,6 +486,8 @@ pub struct ListQuery {
     pub sort: Option<String>,
     pub dir: Option<String>,
     pub dup_only: Option<bool>,
+    /// 只看带这个标签的照片（v0.3 批量属性）
+    pub tag_id: Option<i64>,
     pub offset: Option<i64>,
     pub limit: Option<i64>,
 }
@@ -541,6 +543,11 @@ fn list_media_conn(conn: &Connection, query: &ListQuery) -> rusqlite::Result<Lis
     }
     if query.dup_only.unwrap_or(false) {
         where_clauses.push("m.dup_group IS NOT NULL".into());
+    }
+    if let Some(tag) = query.tag_id {
+        where_clauses.push(format!(
+            "EXISTS (SELECT 1 FROM tag_members tm WHERE tm.media_id = m.id AND tm.tag_id = {tag})"
+        ));
     }
     let where_sql = where_clauses.join(" AND ");
 

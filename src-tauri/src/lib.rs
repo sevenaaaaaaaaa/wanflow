@@ -12,6 +12,7 @@ pub mod scene;
 pub mod scanner;
 mod smart;
 mod state;
+mod tags;
 mod thumbs;
 mod timefix;
 pub mod webdav;
@@ -80,6 +81,8 @@ pub fn run() {
             smart::add_to_album,
             smart::remove_from_album,
             smart::delete_album,
+            tags::tag_list,
+            tags::tag_assign,
             export::export_preview,
             export::export_apply,
             export::export_status,

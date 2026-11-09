@@ -317,6 +317,10 @@ export function installDevMock(): void {
       return true;
     });
     if (q.dupOnly) out = out.filter((m) => m.dupGroup !== null);
+    if (q.tagId) {
+      const members = tagMembers.get(tagNames[tagIdIndex(q.tagId)] ?? "");
+      out = out.filter((m) => members?.has(m.id));
+    }
     const dir = q.dir === "asc" ? 1 : -1;
     const sort = q.sort ?? "added";
     out = [...out].sort((a, b) => {
@@ -395,6 +399,33 @@ export function installDevMock(): void {
     let removed = 0;
     for (const id of ids) if (set.delete(id)) removed += 1;
     return removed;
+  };
+  // 标签：演示库里预置两个，打/取消都即时生效，方便试批量属性
+  const tagNames: string[] = ["春天", "周岁"];
+  const tagMembers = new Map<string, Set<number>>();
+  const tagIdIndex = (id: number) => id - 1;
+  api.listTags = async () =>
+    tagNames.map((name, i) => ({ id: i + 1, name, count: tagMembers.get(name)?.size ?? 0 }));
+  api.assignTags = async (ids, name, remove = false) => {
+    const clean = name.trim();
+    if (!clean) throw new Error("标签名不能为空");
+    if (!tagNames.includes(clean)) {
+      if (remove) throw new Error(`没有「${clean}」这个标签`);
+      tagNames.push(clean);
+    }
+    const set = tagMembers.get(clean) ?? new Set<number>();
+    tagMembers.set(clean, set);
+    let changed = 0;
+    for (const id of ids) {
+      const has = set.has(id);
+      if (has === remove) {
+        if (remove) set.delete(id);
+        else set.add(id);
+        changed += 1;
+      }
+    }
+    if (!changed) return remove ? `选中的照片都没有标签「${clean}」` : `选中的照片都已带标签「${clean}」`;
+    return (remove ? "取消标签" : "打标签") + `「${clean}」${changed} 张`;
   };
   api.clipStatus = async () => ({ modelsReady: false, embCount: 0, imageCount: 0, ollamaReady: false, ollamaModels: [] });
   api.rebuildScenes = async () => {

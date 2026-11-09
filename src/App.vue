@@ -2,7 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { listen } from "@tauri-apps/api/event";
 import {
-  api, fmtBytes, type MediaItem, type ScanStatus, type Stats, type HistoryEntry, type SuggestionItem,
+  api, fmtBytes, type MediaItem, type ScanStatus, type Stats, type HistoryEntry, type SuggestionItem, type TagItem,
 } from "./api";
 import EmptyState from "./components/EmptyState.vue";
 import PhotoGrid from "./components/PhotoGrid.vue";
@@ -15,6 +15,7 @@ import ImportModal from "./components/ImportModal.vue";
 import SmartPanel from "./components/SmartPanel.vue";
 import FamilyPanel from "./components/FamilyPanel.vue";
 import AlbumModal from "./components/AlbumModal.vue";
+import TagModal from "./components/TagModal.vue";
 import Arena from "./components/Arena.vue";
 import ExportModal from "./components/ExportModal.vue";
 import CommandPalette from "./components/CommandPalette.vue";
@@ -31,6 +32,8 @@ const filter = ref<Filter>("all");
 const sort = ref<"time" | "name" | "size" | "stars" | "quality" | "added">("time");
 const dir = ref<"asc" | "desc">("desc");
 const dupOnly = ref(false);
+const tags = ref<TagItem[]>([]);
+const tagFilter = ref<TagItem | null>(null);
 const loading = ref(false);
 
 // —— 选择与灯箱 ——
@@ -60,6 +63,7 @@ const showImport = ref(false);
 const showSmart = ref(false);
 const showFamily = ref(false);
 const showAlbum = ref(false);
+const showTag = ref(false);
 const suggestions = ref<SuggestionItem[]>([]);
 const arenaGroup = ref<number | null>(null);
 const showExport = ref(false);
@@ -109,11 +113,13 @@ async function refresh() {
       sort: sort.value,
       dir: dir.value,
       dupOnly: dupOnly.value || undefined,
+      tagId: tagFilter.value?.id,
       limit: 500,
     });
     items.value = r.items;
     total.value = r.total;
     stats.value = await api.stats();
+    tags.value = await api.listTags();
     refreshSuggestionCount();
   } finally {
     loading.value = false;
@@ -174,6 +180,12 @@ async function runAnalyze() {
 
 function setFilter(f: Filter) {
   filter.value = f;
+  selection.value = new Set();
+  refresh();
+}
+
+function setTagFilter(t: TagItem | null) {
+  tagFilter.value = t;
   selection.value = new Set();
   refresh();
 }
@@ -310,6 +322,7 @@ function closeTop() {
   if (showExport.value) return (showExport.value = false);
   if (showTimeModal.value) return (showTimeModal.value = false);
   if (showAlbum.value) return (showAlbum.value = false);
+  if (showTag.value) return (showTag.value = false);
   if (showHistory.value) return (showHistory.value = false);
   if (showImport.value) return (showImport.value = false);
   if (selection.value.size > 0) return clearSelection();
@@ -357,7 +370,7 @@ function onKey(e: KeyboardEvent) {
   const anyOverlay =
     paletteOpen.value || dupGroup.value !== null || arenaGroup.value !== null ||
     showSuggestions.value || showSmart.value || showImport.value || showExport.value ||
-    showTimeModal.value || showAlbum.value || showHistory.value;
+    showTimeModal.value || showAlbum.value || showTag.value || showHistory.value;
 
   if (e.key === "/" && !inLightbox && !anyOverlay) {
     e.preventDefault();
@@ -397,6 +410,9 @@ const commands = computed<Cmd[]>(() => {
     { id: "family", group: "导入与分析", label: "家人与面孔…", run: () => (showFamily.value = true) },
     { id: "time", group: "整理", label: "修正拍摄时间…", hint: sel.length ? `${sel.length} 张` : "", run: () => (showTimeModal.value = true) },
     { id: "album", group: "整理", label: "加入精选集…", hint: sel.length ? `${sel.length} 张` : "先选照片", run: () => { if (sel.length) showAlbum.value = true; } },
+    { id: "tag", group: "整理", label: "打标签…", hint: sel.length ? `${sel.length} 张` : "先选照片", run: () => { if (sel.length) showTag.value = true; } },
+    ...tags.value.map<Cmd>((t) => ({ id: `tag-${t.id}`, group: "整理·标签", label: `只看标签「${t.name}」`, hint: `${t.count} 张`, run: () => setTagFilter(t) })),
+    ...(tagFilter.value ? [{ id: "tag-clear", group: "整理·标签", label: "清除标签筛选", run: () => setTagFilter(null) } as Cmd] : []),
     { id: "dup", group: "整理", label: dupOnly.value ? "显示全部（不限重复组）" : "只看重复组", run: () => { dupOnly.value = !dupOnly.value; refresh(); } },
     { id: "export", group: "输出", label: "导出精选集…", kbd: "⌘E", hint: sel.length ? `${sel.length} 张选中` : "按范围", run: () => (showExport.value = true) },
     { id: "undo", group: "输出", label: "撤销上一次操作", kbd: "⌘Z", run: undo },
@@ -605,6 +621,7 @@ function topbarLeave() {
           <span class="sep"></span>
           <button @click="showTimeModal = true"><Icon name="time" :size="13" /> 修正时间</button>
           <button @click="showAlbum = true"><Icon name="layers" :size="13" /> 入册</button>
+          <button @click="showTag = true"><Icon name="tag" :size="13" /> 标签</button>
           <button @click="showExport = true"><Icon name="export" :size="13" /> 导出</button>
           <button class="ghost" @click="clearSelection">取消</button>
         </div>
@@ -616,6 +633,10 @@ function topbarLeave() {
           <span class="r">淘汰 <b>{{ stats?.rejects ?? 0 }}</b></span>
           <span>未处理 <b>{{ stats?.unreviewed ?? 0 }}</b></span>
           <span v-if="(stats?.dupGroups ?? 0) > 0">重复组 <b>{{ stats?.dupGroups ?? 0 }}</b></span>
+          <button v-if="tagFilter" class="tagchip" :aria-label="`清除标签筛选${tagFilter.name}`" @click="setTagFilter(null)">
+            <Icon name="tag" :size="12" /> {{ tagFilter.name }} · {{ tagFilter.count }}
+            <Icon name="x" :size="11" />
+          </button>
         </div>
         <span class="spacer"></span>
         <div class="look">
@@ -659,6 +680,14 @@ function topbarLeave() {
       v-if="showTimeModal"
       :ids="selectedIds"
       @close="showTimeModal = false"
+      @applied="async (label) => { showToast(label); await refresh(); }"
+    />
+
+    <!-- 打标签 -->
+    <TagModal
+      v-if="showTag"
+      :ids="selectedIds"
+      @close="showTag = false"
       @applied="async (label) => { showToast(label); await refresh(); }"
     />
 

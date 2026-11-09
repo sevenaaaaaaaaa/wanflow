@@ -117,6 +117,36 @@ pub fn init(db_path: &Path) -> Result<Connection, rusqlite::Error> {
         );
         CREATE INDEX IF NOT EXISTS idx_faces_media ON faces(media_id);
         CREATE INDEX IF NOT EXISTS idx_faces_cluster ON faces(cluster);
+
+        -- 标签：可跨相册/时间轴的横向分组（v0.3 批量属性）
+        CREATE TABLE IF NOT EXISTS tags(
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            created_at INTEGER NOT NULL
+        );
+
+        -- 打/取消标签也是事件：undo = actions.undone=1，成员关系由 tag_members 视图重算
+        CREATE TABLE IF NOT EXISTS tag_ops(
+            id INTEGER PRIMARY KEY,
+            action_id INTEGER NOT NULL REFERENCES actions(id),
+            tag_id INTEGER NOT NULL REFERENCES tags(id),
+            media_id INTEGER NOT NULL REFERENCES media(id),
+            added INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_tag_ops_lookup ON tag_ops(tag_id, media_id);
+
+        -- 当前成员：每个 (tag, media) 只看未撤销事件里的最后一条
+        CREATE VIEW IF NOT EXISTS tag_members AS
+        SELECT o.tag_id AS tag_id, o.media_id AS media_id
+        FROM tag_ops o
+        JOIN actions a ON a.id = o.action_id AND a.undone = 0
+        WHERE o.added = 1
+          AND o.id = (
+            SELECT MAX(o2.id)
+            FROM tag_ops o2
+            JOIN actions a2 ON a2.id = o2.action_id AND a2.undone = 0
+            WHERE o2.tag_id = o.tag_id AND o2.media_id = o.media_id
+          );
     ",
     )?;
     ensure_columns(&conn)?;

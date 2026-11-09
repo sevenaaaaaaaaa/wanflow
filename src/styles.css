@@ -621,3 +621,16 @@ kbd {
 
 /* 旧批量条保留（其它面板可能引用） */
 .batchbar { display: flex; gap: var(--sp-8); align-items: center; }
+/* 标签筛选 chip：只在有筛选时出现，点了就清掉 */
+.dock .tagchip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  height: 22px;
+  padding: 0 var(--sp-2);
+  border: 0.5px solid var(--accent);
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: var(--fs-2);
+}
