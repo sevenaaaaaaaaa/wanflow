@@ -14,6 +14,7 @@ mod smart;
 mod state;
 mod tags;
 mod thumbs;
+pub mod wanpack;
 mod timefix;
 pub mod webdav;
 
@@ -69,6 +70,10 @@ pub fn run() {
             family::family_assign_cluster,
             family::family_remove,
             chat::agent_select,
+            commands::wanpack_plan,
+            commands::wanpack_pack,
+            commands::wanpack_inspect,
+            commands::wanpack_restore,
             smart::clip_status,
             smart::clip_download,
             smart::embed_all,

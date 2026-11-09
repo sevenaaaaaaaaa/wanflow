@@ -1197,3 +1197,52 @@ pub fn resolve_suggestions(state: State<'_, AppState>, ids: Vec<i64>, apply: boo
         Ok(format!("已忽略 {} 条建议", rows.len()))
     }
 }
+
+
+// ============ 整库打包（.wanpack） ============
+// 引擎在 wanpack.rs，这里只做薄封装：库路径取 cache_dir，版本号取 bundle。
+
+#[tauri::command]
+pub fn wanpack_plan(
+    state: State<'_, AppState>,
+    dest: String,
+) -> Result<crate::wanpack::PackPlan, String> {
+    let db = state.cache_dir.join("wanflow.db");
+    crate::wanpack::plan(&db, Path::new(&dest)).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn wanpack_pack(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    dest: String,
+    dry_run: bool,
+    overwrite: bool,
+) -> Result<crate::wanpack::PackOutcome, String> {
+    let db = state.cache_dir.join("wanflow.db");
+    let version = app.package_info().version.to_string();
+    let opts = crate::wanpack::PackOptions { overwrite };
+    crate::wanpack::pack(&db, Path::new(&dest), &version, dry_run, &opts).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn wanpack_inspect(pack: String) -> Result<crate::wanpack::Manifest, String> {
+    crate::wanpack::inspect(Path::new(&pack)).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn wanpack_restore(
+    state: State<'_, AppState>,
+    pack: String,
+    dest: String,
+    remap: Vec<crate::wanpack::Remap>,
+    dry_run: bool,
+    overwrite: bool,
+) -> Result<crate::wanpack::RestoreOutcome, String> {
+    let live = state.cache_dir.join("wanflow.db");
+    if Path::new(&dest) == live {
+        return Err("不能直接覆盖正在使用的库：请先恢复成本副本，确认无误后再替换".into());
+    }
+    crate::wanpack::restore(Path::new(&pack), Path::new(&dest), &remap, dry_run, overwrite)
+        .map_err(|e| e.to_string())
+}

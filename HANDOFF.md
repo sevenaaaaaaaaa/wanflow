@@ -733,3 +733,31 @@ sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
 - 按标签 + 决策的组合筛选（`ListQuery` 已经能叠，UI 没暴露）。
 
 **回滚**：`git revert <sha>`。`tags` / `tag_ops` / `tag_members` 都是新增，回退代码后旧库照常打开；已打的标签留在库里，不碰原图。
+
+## 2026-11-09 · .wanpack 整库打包（引擎一期）
+
+**做到哪**：纯 Rust 引擎 + 4 个 Tauri 命令，不碰 UI。默认只打元数据（不复制媒体字节），目标场景是「换台机器继续整理」。
+
+**文件**
+- 新增 `src-tauri/src/wanpack.rs`（~700 行含测试）：manifest 读写、store-only ZIP 读写、VACUUM INTO 快照、sha256、路径重映射、原子落盘。
+- `src-tauri/src/lib.rs`：`pub mod wanpack;` + 注册 `wanpack_plan / wanpack_pack / wanpack_inspect / wanpack_restore`。
+- `src-tauri/src/commands.rs`：4 个薄封装（库路径取 `cache_dir/wanflow.db`，版本取 `app.package_info()`）。
+
+**几个关键决定**
+- **不引入 zip crate**：`cargo metadata --offline` 显示它会连带降级 21 个传递依赖（jiff / wasm-bindgen 一族）。改成自写 store-only ZIP（写读各一百多行），依赖零变动；产物仍可被系统 `unzip` 打开。
+- **快照用 `VACUUM INTO`**：产出一致性快照，且自动含 WAL 里已提交内容；快照路径的 `'` 要手动双写转义（VACUUM INTO 不能绑参）。
+- **老库兼容**：真实库是 0.2.1 时代的，没有 `tags` / `faces` 表，`COUNT(*)` 会报 `no such table`。`count()` 现在把这类错误按 0 处理，恢复时再由 `db::init` 补建表。
+- **路径边界**：`/a/b` 不能吃掉 `/a/bc`；macOS 的 `/var` ↔ `/private/var` 用「先 canonicalize 父目录再拼文件名」解决（目标文件还不存在，不能直接 canonicalize）。
+- **不覆盖在用库**：命令层拦住 `dest == cache_dir/wanflow.db`，提示先恢复副本再替换（AppState 持有打开的连接，直接换文件会出事）。
+
+**验证**
+- `cargo test`：68 passed / 2 ignored（一个场景校准、一个手工 dump）。wanpack 6 个单测覆盖：打包→检查、恢复+重映射+标签/精选集随库、目录边界、目的在源内拒绝、目标已存在拒绝、dry-run 不落盘。
+- 真实库冒烟：`WF_LIVE_DB=~/Library/Caches/com.wanflow.app/wanflow.db cargo test live_library_smoke -- --ignored --nocapture` → pack 30 张 / 9 条 actions / 221,925 B；restore 30 条路径重写、1 个来源重写、0 未映射，恢复后 media=30。
+- 互通：`unzip -l /tmp/wf-live.wanpack` 列出 manifest.json + library.sqlite，`unzip -t` 报 No errors；`file` 认成 Zip archive（store）。
+
+**回滚**：`git revert <sha>`（纯新增模块 + 注册线，无表结构变更、无数据迁移）。
+
+**别踩**
+- 打包是只读的，但 `VACUUM INTO` 会在**目的目录**写一个 `.wanpack.snapshot` 临时文件，成功/失败都要记得清理（当前实现成功时删）。
+- ZIP 读实现只支持 method=0；将来若用别的工具产出压缩包，`zip_read` 会明确报「压缩条目」而不是静默失败。
+- 恢复不校验目的盘剩余空间；大库（含人脸 embedding）预留 2 倍空间。
