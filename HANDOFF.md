@@ -674,3 +674,28 @@ sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
 **未提交的改动**：无。
 
 **未提交的改动**：无。
+
+## 2026-11-09 ·  v0.3 批量处理第一项：选中照片加入已有精选集
+
+**背景**：v0.2.x 的精选集只能由「智能精选」创建（`create_album` 一次成型），人工挑选后没法把一批照片补进已有相册。蓝图 v0.3 的「属性批量 → 相册归属」就缺这一块。
+
+**改了什么**
+- `src-tauri/src/smart.rs`：新增 `add_to_album_conn` / `remove_from_album_conn` 纯函数 + 两个 `#[tauri::command]` 包装。加入用 `INSERT OR IGNORE`，所以重复加入不报错、只返回真正新增的行数；移除只动指定相册。
+- `src-tauri/src/lib.rs`：注册 `add_to_album` / `remove_from_album`（命令数 41 → 43）。
+- `src/api.ts`：`addToAlbum` / `removeFromAlbum`。
+- `src/components/AlbumModal.vue`（新）：列出现有精选集（名称 + 张数）单选，或输入名字「新建并收下」；全部用 token，无硬编码色；空选中时按钮禁用。
+- `src/App.vue`：命令面板「整理 → 加入精选集…」、网格 Dock「入册」按钮、`Esc` 关闭（并入 `closeTop` / `anyOverlay`）。
+- `src/dev/mock.ts`：演示库预置「周岁」「每周一张」两本，浏览器里能直接试。
+
+**验证**
+- `cargo test`：**57 passed**（原 54 + 新增 3：幂等计数、缺集 / 空选中报错、跨相册互不影响）。
+- `npm run build` 通过（CSS 70.47 kB / gzip 12.81 kB，JS 204.35 kB / gzip 73.71 kB）。
+- 截图核对：弹窗（`docs/shots/album-join-1440.jpg`）与 1100 宽网格 Dock（含「入册」，无溢出）。
+- 仓库硬编码色自检：`✓ 本次改动无硬编码颜色`。
+
+**回滚**：`git revert b9b9653`（新增命令与组件，不动表结构；已写入的 album_members 行会保留，可手动删）。
+
+**别踩**
+- `add_to_album` 不改已有成员的 `score`（`INSERT OR IGNORE`）；要改分数得用 create_album 或另写命令。
+- 浏览器里试功能走 `dev/mock.ts` 的假实现，真实路径只认 Tauri 命令；别把 mock 行为当后端语义。
+- 选中为空时 Dock 不渲染动作栏，命令面板的「加入精选集…」会提示「先选照片」。
