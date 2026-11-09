@@ -1,6 +1,6 @@
 // 仅开发期：浏览器里没有 Tauri 运行时，用一份可达的演示库驱动界面。
 // 生产构建里 import.meta.env.DEV 为 false，且入口会检查 __TAURI_INTERNALS__，不会生效。
-import type { HistoryEntry, MediaItem, Stats } from "../api";
+import type { AlbumItem, HistoryEntry, MediaItem, Stats } from "../api";
 import { api } from "../api";
 
 function hasTauri(): boolean {
@@ -368,7 +368,34 @@ export function installDevMock(): void {
   api.history = async () => history;
   api.exportStatus = async () => ({ running: false, phase: "", done: 0, total: 0, current: "" });
   api.listSources = async () => [];
-  api.listAlbums = async () => [];
+  // 精选集：演示库里给两本，方便在浏览器里试「加入精选集」
+  const albums: AlbumItem[] = [
+    { id: 1, name: "周岁", count: 0, createdAt: 0 },
+    { id: 2, name: "每周一张", count: 0, createdAt: 0 },
+  ];
+  const albumMembers = new Map<number, Set<number>>();
+  api.listAlbums = async () =>
+    albums.map((a) => ({ ...a, count: albumMembers.get(a.id)?.size ?? a.count }));
+  api.createAlbum = async (name, ids) => {
+    const id = albums.reduce((max, a) => Math.max(max, a.id), 0) + 1;
+    albums.push({ id, name, count: 0, createdAt: 0 });
+    albumMembers.set(id, new Set(ids));
+    return id;
+  };
+  api.addToAlbum = async (albumId, ids) => {
+    const set = albumMembers.get(albumId) ?? new Set<number>();
+    albumMembers.set(albumId, set);
+    let added = 0;
+    for (const id of ids) if (!set.has(id)) { set.add(id); added += 1; }
+    return added;
+  };
+  api.removeFromAlbum = async (albumId, ids) => {
+    const set = albumMembers.get(albumId);
+    if (!set) return 0;
+    let removed = 0;
+    for (const id of ids) if (set.delete(id)) removed += 1;
+    return removed;
+  };
   api.clipStatus = async () => ({ modelsReady: false, embCount: 0, imageCount: 0, ollamaReady: false, ollamaModels: [] });
   api.rebuildScenes = async () => {
     assignSceneGroups();

@@ -460,6 +460,75 @@ pub fn create_album(
     Ok(album_id)
 }
 
+
+fn add_to_album_conn(conn: &mut Connection, album_id: i64, ids: &[i64]) -> Result<usize, String> {
+    if ids.is_empty() {
+        return Err("先选中照片".into());
+    }
+    let exists: i64 = conn
+        .query_row("SELECT COUNT(*) FROM albums WHERE id = ?1", [album_id], |r| {
+            r.get(0)
+        })
+        .map_err(|e| e.to_string())?;
+    if exists == 0 {
+        return Err("精选集不存在".into());
+    }
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    let mut added = 0usize;
+    {
+        let mut stmt = tx
+            .prepare("INSERT OR IGNORE INTO album_members(album_id, media_id, score) VALUES (?1, ?2, 0)")
+            .map_err(|e| e.to_string())?;
+        for id in ids {
+            added += stmt
+                .execute(rusqlite::params![album_id, id])
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    tx.commit().map_err(|e| e.to_string())?;
+    Ok(added)
+}
+
+fn remove_from_album_conn(conn: &mut Connection, album_id: i64, ids: &[i64]) -> Result<usize, String> {
+    if ids.is_empty() {
+        return Err("先选中照片".into());
+    }
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    let mut removed = 0usize;
+    {
+        let mut stmt = tx
+            .prepare("DELETE FROM album_members WHERE album_id = ?1 AND media_id = ?2")
+            .map_err(|e| e.to_string())?;
+        for id in ids {
+            removed += stmt
+                .execute(rusqlite::params![album_id, id])
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    tx.commit().map_err(|e| e.to_string())?;
+    Ok(removed)
+}
+
+#[tauri::command]
+pub fn add_to_album(
+    state: State<'_, AppState>,
+    album_id: i64,
+    ids: Vec<i64>,
+) -> Result<usize, String> {
+    let mut conn = lock(&state.db);
+    add_to_album_conn(&mut conn, album_id, &ids)
+}
+
+#[tauri::command]
+pub fn remove_from_album(
+    state: State<'_, AppState>,
+    album_id: i64,
+    ids: Vec<i64>,
+) -> Result<usize, String> {
+    let mut conn = lock(&state.db);
+    remove_from_album_conn(&mut conn, album_id, &ids)
+}
+
 #[tauri::command]
 pub fn delete_album(state: State<'_, AppState>, id: i64) -> Result<(), String> {
     let conn = lock(&state.db);
@@ -493,4 +562,80 @@ pub fn album_media(state: State<'_, AppState>, id: i64) -> Result<Vec<ScoredMedi
         .flatten()
         .collect();
     Ok(items)
+}
+
+#[cfg(test)]
+mod album_tests {
+    use super::*;
+
+    fn seed(dir: &tempfile::TempDir) -> Connection {
+        let conn = crate::db::init(&dir.path().join("t.db")).unwrap();
+        for i in 1..=3 {
+            conn.execute(
+                "INSERT INTO media(path, filename, ext, kind, size_bytes, mtime, content_hash,
+                                   base_time, time_source, scanned_at)
+                 VALUES (?1, ?2, 'jpg', 'image', 0, 0, ?3, 0, 'exif', 0)",
+                rusqlite::params![
+                    format!("/tmp/m{i}.jpg"),
+                    format!("m{i}.jpg"),
+                    format!("h{i}")
+                ],
+            )
+            .unwrap();
+        }
+        conn.execute(
+            "INSERT INTO albums(name, created_at) VALUES ('周岁', 0)",
+            [],
+        )
+        .unwrap();
+        conn
+    }
+
+    fn member_count(conn: &Connection, album_id: i64) -> i64 {
+        conn.query_row(
+            "SELECT COUNT(*) FROM album_members WHERE album_id = ?1",
+            [album_id],
+            |r| r.get(0),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn add_is_idempotent_and_counts_only_new() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut conn = seed(&dir);
+        assert_eq!(add_to_album_conn(&mut conn, 1, &[1, 2]).unwrap(), 2);
+        assert_eq!(member_count(&conn, 1), 2);
+        // 再加一次同样的两张：不重复插入、不报错
+        assert_eq!(add_to_album_conn(&mut conn, 1, &[1, 2]).unwrap(), 0);
+        assert_eq!(member_count(&conn, 1), 2);
+        // 混入一张新的：只算新增的那一张
+        assert_eq!(add_to_album_conn(&mut conn, 1, &[2, 3]).unwrap(), 1);
+        assert_eq!(member_count(&conn, 1), 3);
+    }
+
+    #[test]
+    fn add_rejects_missing_album_and_empty_ids() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut conn = seed(&dir);
+        assert!(add_to_album_conn(&mut conn, 999, &[1]).is_err());
+        assert!(add_to_album_conn(&mut conn, 1, &[]).is_err());
+        assert_eq!(member_count(&conn, 1), 0);
+    }
+
+    #[test]
+    fn remove_only_touches_given_album() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut conn = seed(&dir);
+        conn.execute("INSERT INTO albums(name, created_at) VALUES ('第二本', 0)", [])
+            .unwrap();
+        add_to_album_conn(&mut conn, 1, &[1, 2]).unwrap();
+        add_to_album_conn(&mut conn, 2, &[1]).unwrap();
+
+        assert_eq!(remove_from_album_conn(&mut conn, 1, &[1]).unwrap(), 1);
+        assert_eq!(member_count(&conn, 1), 1);
+        assert_eq!(member_count(&conn, 2), 1);
+        // 再删同一张：没有变化但不报错
+        assert_eq!(remove_from_album_conn(&mut conn, 1, &[1]).unwrap(), 0);
+    }
 }

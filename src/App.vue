@@ -14,6 +14,7 @@ import SuggestionsPanel from "./components/SuggestionsPanel.vue";
 import ImportModal from "./components/ImportModal.vue";
 import SmartPanel from "./components/SmartPanel.vue";
 import FamilyPanel from "./components/FamilyPanel.vue";
+import AlbumModal from "./components/AlbumModal.vue";
 import Arena from "./components/Arena.vue";
 import ExportModal from "./components/ExportModal.vue";
 import CommandPalette from "./components/CommandPalette.vue";
@@ -58,6 +59,7 @@ const showSuggestions = ref(false);
 const showImport = ref(false);
 const showSmart = ref(false);
 const showFamily = ref(false);
+const showAlbum = ref(false);
 const suggestions = ref<SuggestionItem[]>([]);
 const arenaGroup = ref<number | null>(null);
 const showExport = ref(false);
@@ -307,6 +309,7 @@ function closeTop() {
   if (showSmart.value) return (showSmart.value = false);
   if (showExport.value) return (showExport.value = false);
   if (showTimeModal.value) return (showTimeModal.value = false);
+  if (showAlbum.value) return (showAlbum.value = false);
   if (showHistory.value) return (showHistory.value = false);
   if (showImport.value) return (showImport.value = false);
   if (selection.value.size > 0) return clearSelection();
@@ -354,7 +357,7 @@ function onKey(e: KeyboardEvent) {
   const anyOverlay =
     paletteOpen.value || dupGroup.value !== null || arenaGroup.value !== null ||
     showSuggestions.value || showSmart.value || showImport.value || showExport.value ||
-    showTimeModal.value || showHistory.value;
+    showTimeModal.value || showAlbum.value || showHistory.value;
 
   if (e.key === "/" && !inLightbox && !anyOverlay) {
     e.preventDefault();
@@ -393,6 +396,7 @@ const commands = computed<Cmd[]>(() => {
     { id: "smart", group: "导入与分析", label: "智能精选…", run: () => (showSmart.value = true) },
     { id: "family", group: "导入与分析", label: "家人与面孔…", run: () => (showFamily.value = true) },
     { id: "time", group: "整理", label: "修正拍摄时间…", hint: sel.length ? `${sel.length} 张` : "", run: () => (showTimeModal.value = true) },
+    { id: "album", group: "整理", label: "加入精选集…", hint: sel.length ? `${sel.length} 张` : "先选照片", run: () => { if (sel.length) showAlbum.value = true; } },
     { id: "dup", group: "整理", label: dupOnly.value ? "显示全部（不限重复组）" : "只看重复组", run: () => { dupOnly.value = !dupOnly.value; refresh(); } },
     { id: "export", group: "输出", label: "导出精选集…", kbd: "⌘E", hint: sel.length ? `${sel.length} 张选中` : "按范围", run: () => (showExport.value = true) },
     { id: "undo", group: "输出", label: "撤销上一次操作", kbd: "⌘Z", run: undo },
@@ -600,6 +604,7 @@ function topbarLeave() {
           </div>
           <span class="sep"></span>
           <button @click="showTimeModal = true"><Icon name="time" :size="13" /> 修正时间</button>
+          <button @click="showAlbum = true"><Icon name="layers" :size="13" /> 入册</button>
           <button @click="showExport = true"><Icon name="export" :size="13" /> 导出</button>
           <button class="ghost" @click="clearSelection">取消</button>
         </div>
@@ -655,6 +660,14 @@ function topbarLeave() {
       :ids="selectedIds"
       @close="showTimeModal = false"
       @applied="async (label) => { showToast(label); await refresh(); }"
+    />
+
+    <!-- 加入精选集 -->
+    <AlbumModal
+      v-if="showAlbum"
+      :ids="selectedIds"
+      @close="showAlbum = false"
+      @applied="async (label) => { showToast(label); showAlbum = false; await refresh(); }"
     />
 
     <!-- 历史抽屉 -->

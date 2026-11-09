@@ -315,6 +315,10 @@ export const api = {
   createAlbum: (name: string, ids: number[], scores?: number[]) =>
     invoke<number>("create_album", { name, ids, scores }),
   deleteAlbum: (id: number) => invoke<void>("delete_album", { id }),
+  addToAlbum: (albumId: number, ids: number[]) =>
+    invoke<number>("add_to_album", { albumId, ids }),
+  removeFromAlbum: (albumId: number, ids: number[]) =>
+    invoke<number>("remove_from_album", { albumId, ids }),
   albumMedia: (id: number) => invoke<ScoredMedia[]>("album_media", { id }),
   familyIndexAll: () => invoke<void>("family_index_all"),
   familyClusters: () => invoke<ClusterItem[]>("family_clusters"),

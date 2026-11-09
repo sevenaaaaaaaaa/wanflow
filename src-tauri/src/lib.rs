@@ -77,6 +77,8 @@ pub fn run() {
             smart::list_albums,
             smart::album_media,
             smart::create_album,
+            smart::add_to_album,
+            smart::remove_from_album,
             smart::delete_album,
             export::export_preview,
             export::export_apply,
