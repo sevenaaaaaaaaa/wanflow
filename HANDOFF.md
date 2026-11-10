@@ -784,3 +784,23 @@ sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
 - 模态里的目录选择用系统对话框，测试环境无法脚本化，只做了「选之前」的静态核对；真机点一遍才算验收。
 
 **回滚**：`git revert <sha>`（纯新增组件 + 接线；无库结构变更）。
+
+## 2026-11-10 · 替换在用库（wanflow.db.pending）
+
+**为什么先做这个**：上一轮的恢复只能产出副本，而应用只认 `cache_dir/wanflow.db`，副本打不开——不接换库，「跨设备迁移」就是死的。`--with-media` 之后再做，否则带着照片的包同样无法落地。
+
+**机制**
+- 恢复勾选「直接替换当前库」时走 `wanpack_restore_to_live`：先把包恢复成 `cache/wanflow.db.pending`（自包含单文件：`wal_checkpoint(TRUNCATE)` + `journal_mode=DELETE`）。
+- 下次启动在 `db::init` **之前**：`integrity_check` 通过 → 旧库改名 `wanflow.db.bak-<ts>` → 清掉旧库的 `-wal`/`-shm` → pending 改名 `wanflow.db` → 打开并升级表结构 → 写 `wanflow.db.swapped` 标记。
+- 待换库不是合法 WanFlow 库时：改名 `wanflow.db.pending.rejected`，**原库不动**，启动日志报错。
+- 界面重启前提示一次（读标记后即删）；「立即重启」调 `app.restart()`。
+
+**验证**
+- `cargo test`：72 passed / 2 ignored。新增 3 条：换库后 live 是新库、备份保留旧数据、旧 WAL 被清；坏 pending 被隔离且原库不变；`restore_to_pending → apply_pending_swap` 端到端。
+- `npm run build` 通过；截图 `docs/shots/wanpack-replace-live-1440.jpg`。
+
+**回滚**：`git revert <sha>`。已经换过库的机器可以用 `wanflow.db.bak-<ts>` 换回去。
+
+**别踩**
+- 换库发生在 `db::init` 之前，任何新的启动期初始化都别抢在它前面打开库。
+- pending 必须是无 WAL 的单文件；`restore()` 里的 `journal_mode=DELETE` 就是为这个加的，别删。

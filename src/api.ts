@@ -341,6 +341,13 @@ export interface WanpackRemap {
   to: string;
 }
 
+export interface WanpackSwapReport {
+  at: number;
+  backup: string;
+  media: number;
+  tags: number;
+}
+
 export const api = {
   wanpackPlan: (dest: string) => invoke<WanpackPlan>("wanpack_plan", { dest }),
   wanpackPack: (dest: string, dryRun = false, overwrite = false) =>
@@ -348,6 +355,10 @@ export const api = {
   wanpackInspect: (pack: string) => invoke<WanpackManifest>("wanpack_inspect", { pack }),
   wanpackRestore: (pack: string, dest: string, remap: WanpackRemap[], dryRun = false, overwrite = false) =>
     invoke<WanpackRestoreOutcome>("wanpack_restore", { pack, dest, remap, dryRun, overwrite }),
+  wanpackRestoreLive: (pack: string, remap: WanpackRemap[], dryRun = false) =>
+    invoke<WanpackRestoreOutcome>("wanpack_restore_live", { pack, remap, dryRun }),
+  wanpackLastSwap: () => invoke<WanpackSwapReport | null>("wanpack_last_swap"),
+  restartApp: () => invoke<void>("restart_app"),
   importFolder: (path: string, kind: "folder" | "qq", label: string) =>
     invoke<void>("import_folder", { path, kind, label }),
   importPhotosLibrary: () => invoke<void>("import_photos_library"),

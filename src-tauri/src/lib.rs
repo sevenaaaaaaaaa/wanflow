@@ -29,6 +29,12 @@ pub fn run() {
             std::fs::create_dir_all(&cache)?;
             let thumbs = cache.join("thumbs");
             std::fs::create_dir_all(&thumbs)?;
+            // 上次退出前若准备好了替换库，先完成交换，再打开库
+            match wanpack::apply_pending_swap(&cache) {
+                Ok(Some(r)) => println!("[wanpack] 已切换到恢复的库：{} 张（备份 {}）", r.media, r.backup),
+                Ok(None) => {}
+                Err(e) => eprintln!("[wanpack] 替换库失败：{e}"),
+            }
             let conn = db::init(&cache.join("wanflow.db")).map_err(|e| {
                 anyhow_err(format!("数据库初始化失败: {e}"))
             })?;
@@ -74,6 +80,9 @@ pub fn run() {
             commands::wanpack_pack,
             commands::wanpack_inspect,
             commands::wanpack_restore,
+            commands::wanpack_restore_live,
+            commands::wanpack_last_swap,
+            commands::restart_app,
             smart::clip_status,
             smart::clip_download,
             smart::embed_all,

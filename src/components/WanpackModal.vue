@@ -29,6 +29,9 @@ const manifest = ref<WanpackManifest | null>(null);
 const destDb = ref("");
 const mapped = ref<Record<number, string>>({});
 const restored = ref<WanpackRestoreOutcome | null>(null);
+// 直接替换当前库：先写 pending，重启后由启动钩子交换
+const replaceLive = ref(false);
+const staged = ref<WanpackRestoreOutcome | null>(null);
 
 const title = computed(() => (props.mode === "pack" ? "打包整库" : "从整库包恢复"));
 
@@ -134,16 +137,30 @@ async function pickRoot(id: number) {
 }
 
 async function runRestore() {
-  if (!manifest.value || !destDb.value) return;
+  if (!manifest.value) return;
+  if (!replaceLive.value && !destDb.value) return;
   busy.value = true;
   error.value = "";
   try {
-    const out = await api.wanpackRestore(packPath.value, destDb.value, remapList.value, false, false);
-    restored.value = out;
-    emit("done", "整库已恢复：" + out.dest);
+    if (replaceLive.value) {
+      staged.value = await api.wanpackRestoreLive(packPath.value, remapList.value, false);
+    } else {
+      restored.value = await api.wanpackRestore(packPath.value, destDb.value, remapList.value, false, false);
+      emit("done", "整库已恢复：" + restored.value.dest);
+    }
   } catch (e) {
     error.value = String(e);
   } finally {
+    busy.value = false;
+  }
+}
+
+async function restartNow() {
+  busy.value = true;
+  try {
+    await api.restartApp();
+  } catch (e) {
+    error.value = String(e);
     busy.value = false;
   }
 }
@@ -183,8 +200,8 @@ async function runRestore() {
 
         <template v-else>
           <p class="wp-note">
-            选一个 .wanpack，恢复成新的库文件。当前库不会被动到；要替换正在用的库，
-            请退出应用后再换文件（应用内不允许直接覆盖正在打开的库）。
+            选一个 .wanpack，恢复成新的库文件。默认只产出副本、不动当前库；
+            勾选「直接替换当前库」则写入待替换文件，下次启动时接管，旧库自动备份。
           </p>
           <div class="form-row">
             <label>整库包</label>
@@ -196,6 +213,16 @@ async function runRestore() {
             <div><b>内容</b> {{ statsLine(manifest.stats) }} · 库文件 {{ fmtBytes(manifest.files[0] ? manifest.files[0].bytes : 0) }}</div>
           </div>
           <div class="form-row">
+            <label>方式</label>
+            <label class="wp-check">
+              <input type="checkbox" v-model="replaceLive" />
+              直接替换当前库（重启后生效）
+            </label>
+          </div>
+          <div v-if="replaceLive" class="wp-facts">
+            <div>旧库先备份成 wanflow.db.bak-&lt;时间&gt;，新库在下次启动时接管；准备好后需要重启应用。</div>
+          </div>
+          <div v-else class="form-row">
             <label>恢复到</label>
             <button :disabled="!manifest" @click="pickDestDb">选择位置…</button>
             <span class="wp-path">{{ destDb || "还没选" }}</span>
@@ -213,10 +240,14 @@ async function runRestore() {
           </div>
 
           <div class="form-row">
-            <button class="primary" :disabled="!manifest || !destDb || busy" @click="runRestore">
-              {{ busy ? "恢复中…" : "开始恢复" }}
+            <button class="primary" :disabled="!manifest || (!replaceLive && !destDb) || busy" @click="runRestore">
+              {{ busy ? "恢复中…" : replaceLive ? "准备好替换" : "开始恢复" }}
             </button>
-            <span v-if="manifest" class="hint">恢复完当前库仍然不变</span>
+            <span v-if="manifest && !replaceLive" class="hint">恢复完当前库仍然不变</span>
+          </div>
+          <div v-if="staged" class="wp-ok">
+            <b>已准备好</b> 重启后由新库接管 · 重写 {{ staged.mediaRewritten }} 张路径 · 未映射 {{ staged.mediaUnmapped }} 张
+            <button class="wp-restart" :disabled="busy" @click="restartNow">立即重启</button>
           </div>
           <div v-if="restored" class="wp-ok">
             <b>已恢复</b> {{ restored.dest }} · 重写 {{ restored.mediaRewritten }} 张路径 · 未映射 {{ restored.mediaUnmapped }} 张
@@ -323,4 +354,14 @@ async function runRestore() {
 .wp-ok b {
   font-weight: 500;
 }
+.wp-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: auto;
+}
+.wp-restart {
+  margin-left: var(--sp-3);
+}
+
 </style>

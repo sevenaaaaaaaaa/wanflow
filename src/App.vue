@@ -441,6 +441,13 @@ onMounted(async () => {
   // 首屏短暂露出工具条：让它被看见一次，然后自己隐入纸面
   window.setTimeout(() => { if (!topbarTouched) topbarHovered.value = false; }, 1800);
 
+  // 上次启动前若换过库，提示一次（不带撤销）
+  api.wanpackLastSwap()
+    .then((r) => {
+      if (r) showToast("已切换到恢复的库：" + r.media + " 张 · 旧库备份在 " + r.backup, 0);
+    })
+    .catch(() => {});
+
   document.addEventListener("keydown", onKey);
   try {
     unlisteners = await Promise.all([
@@ -755,7 +762,7 @@ function topbarLeave() {
     <!-- 撤销 toast -->
     <div class="undo-toast" :class="{ 'toast-top': view === 'story' }" v-if="undoToast">
       <span>{{ undoToast }}</span>
-      <button @click="undo(undoSteps)">撤销</button>
+      <button v-if="undoSteps > 0" @click="undo(undoSteps)">撤销</button>
       <button style="color: var(--text-3)" @click="undoToast = null">✕</button>
     </div>
   </div>

@@ -1246,3 +1246,27 @@ pub fn wanpack_restore(
     crate::wanpack::restore(Path::new(&pack), Path::new(&dest), &remap, dry_run, overwrite)
         .map_err(|e| e.to_string())
 }
+
+
+// —— 整库替换：写 pending，下次启动交换 ——
+
+#[tauri::command]
+pub fn wanpack_restore_live(
+    state: State<'_, AppState>,
+    pack: String,
+    remap: Vec<crate::wanpack::Remap>,
+    dry_run: bool,
+) -> Result<crate::wanpack::RestoreOutcome, String> {
+    crate::wanpack::restore_to_pending(Path::new(&pack), &state.cache_dir, &remap, dry_run)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn wanpack_last_swap(state: State<'_, AppState>) -> Option<crate::wanpack::SwapReport> {
+    crate::wanpack::take_swap_report(&state.cache_dir)
+}
+
+#[tauri::command]
+pub fn restart_app(app: AppHandle) {
+    app.restart();
+}

@@ -446,8 +446,13 @@ pub fn restore(
         fs::remove_file(dest_db)?;
     }
     fs::rename(&tmp, dest_db)?;
-    // 统一交给 db::init 幂等升级（老包缺的列会补上）
-    let _ = crate::db::init(dest_db)?;
+    // 统一交给 db::init 幂等升级（老包缺的列会补上），并收成自包含单文件：
+    // 切回 DELETE 日志模式，免得 -wal / -shm 跟着恢复产物跑
+    {
+        let _ = crate::db::init(dest_db)?;
+        let conn = Connection::open(dest_db)?;
+        let _ = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE); PRAGMA journal_mode=DELETE;");
+    }
 
     Ok(RestoreOutcome {
         dest: dest_db.to_path_buf(),
@@ -934,4 +939,191 @@ mod tests {
         assert_eq!(out.pack_bytes, 0);
         assert!(!dest.exists());
     }
+
+    fn seed_media(path: &Path, n: usize) {
+        let c = crate::db::init(path).unwrap();
+        for i in 0..n {
+            c.execute(
+                "INSERT INTO media(path, filename, ext, kind, size_bytes, mtime, content_hash,
+                                   base_time, time_source, scanned_at)
+                 VALUES (?1, ?2, 'jpg', 'image', 1, 0, ?3, 0, 'exif', 0)",
+                params![
+                    format!("{}/p{i}.jpg", path.display()),
+                    format!("p{i}.jpg"),
+                    format!("h{i}")
+                ],
+            )
+            .unwrap();
+        }
+    }
+
+    #[test]
+    fn pending_swap_replaces_live_and_keeps_backup() {
+        let dir = tempfile::tempdir().unwrap();
+        let live = dir.path().join("wanflow.db");
+        seed_media(&live, 1);
+        // 旧库残留的 WAL 不应该被新库继承
+        fs::write(dir.path().join("wanflow.db-wal"), b"stale").unwrap();
+
+        let pending = dir.path().join(PENDING_NAME);
+        seed_media(&pending, 3);
+
+        let report = apply_pending_swap(dir.path()).unwrap().unwrap();
+        assert_eq!(report.media, 3);
+        assert!(PathBuf::from(&report.backup).exists());
+        assert!(!dir.path().join("wanflow.db-wal").exists());
+        assert!(!pending.exists());
+
+        let conn = Connection::open(&live).unwrap();
+        let n: i64 = conn
+            .query_row("SELECT COUNT(*) FROM media", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(n, 3);
+
+        let backup = Connection::open(&report.backup).unwrap();
+        let m: i64 = backup
+            .query_row("SELECT COUNT(*) FROM media", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(m, 1);
+
+        // 标记只给界面看一次
+        assert!(take_swap_report(dir.path()).is_some());
+        assert!(take_swap_report(dir.path()).is_none());
+    }
+
+    #[test]
+    fn pending_swap_rejects_bad_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let live = dir.path().join("wanflow.db");
+        seed_media(&live, 1);
+        fs::write(dir.path().join(PENDING_NAME), b"not a sqlite file").unwrap();
+
+        let err = apply_pending_swap(dir.path()).unwrap_err();
+        assert!(matches!(err, PackError::Format(_)), "{err:?}");
+
+        // 原库没被动过
+        let conn = Connection::open(&live).unwrap();
+        let n: i64 = conn
+            .query_row("SELECT COUNT(*) FROM media", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(n, 1);
+        assert!(dir.path().join("wanflow.db.pending.rejected").exists());
+    }
+
+    #[test]
+    fn restore_to_pending_then_swap_end_to_end() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("photos");
+        fs::create_dir_all(&root).unwrap();
+        let db = seed_db(dir.path(), root.to_str().unwrap());
+        let pack_path = dir.path().join("family.wanpack");
+        pack(&db, &pack_path, "9.9.9", false, &PackOptions::default()).unwrap();
+
+        let cache = dir.path().join("cache");
+        fs::create_dir_all(&cache).unwrap();
+        let out = restore_to_pending(&pack_path, &cache, &[], false).unwrap();
+        assert_eq!(out.stats.media, 3);
+        let pending = cache.join(PENDING_NAME);
+        assert!(pending.exists());
+        // 恢复产物必须是自包含单文件
+        assert!(!cache.join("wanflow.db.pending-wal").exists());
+
+        let report = apply_pending_swap(&cache).unwrap().unwrap();
+        assert_eq!(report.media, 3);
+        assert!(!pending.exists());
+    }
+}
+
+// ── 替换在用库（启动时生效）─────────────────────────────────
+// 恢复不能直接覆盖正在打开的库：先把新库写成「cache/wanflow.db.pending」，
+// 下次启动在 db::init 之前完成交换，旧库先备份成 wanflow.db.bak-<ts>。
+
+pub const PENDING_NAME: &str = "wanflow.db.pending";
+pub const SWAPPED_MARKER: &str = "wanflow.db.swapped";
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SwapReport {
+    pub at: i64,
+    pub backup: String,
+    pub media: i64,
+    pub tags: i64,
+}
+
+/// 启动时调用：有 pending 就换库。返回 None 表示没有待换的库。
+pub fn apply_pending_swap(cache: &Path) -> Result<Option<SwapReport>> {
+    let pending = cache.join(PENDING_NAME);
+    if !pending.exists() {
+        return Ok(None);
+    }
+    let live = cache.join("wanflow.db");
+
+    // 先验完整性，坏包不能碰现有库
+    if let Err(e) = integrity_ok(&pending) {
+        let rejected = cache.join("wanflow.db.pending.rejected");
+        let _ = fs::rename(&pending, &rejected);
+        return Err(PackError::Format(format!(
+            "待替换的库不可用，已隔离到 {}：{e}",
+            rejected.display()
+        )));
+    }
+
+    let ts = chrono::Utc::now().timestamp();
+    let backup = cache.join(format!("wanflow.db.bak-{ts}"));
+    if live.exists() {
+        fs::rename(&live, &backup)?;
+        // 旧库的 WAL / SHM 不能留给新库
+        let _ = fs::remove_file(cache.join("wanflow.db-wal"));
+        let _ = fs::remove_file(cache.join("wanflow.db-shm"));
+    }
+    fs::rename(&pending, &live)?;
+
+    // 打开一次，把表结构升级到当前版本，并落一条结果标记给界面显示
+    let conn = crate::db::init(&live)?;
+    let (media, tags) = (count(&conn, "media")?, count(&conn, "tags")?);
+    let report = SwapReport {
+        at: ts,
+        backup: backup.to_string_lossy().to_string(),
+        media,
+        tags,
+    };
+    let marker = cache.join(SWAPPED_MARKER);
+    let _ = fs::write(&marker, serde_json::to_vec_pretty(&report)?);
+    Ok(Some(report))
+}
+
+fn integrity_ok(path: &Path) -> Result<()> {
+    let conn = Connection::open_with_flags(
+        path,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_URI,
+    )?;
+    let verdict: String = conn.query_row("PRAGMA integrity_check", [], |r| r.get(0))?;
+    if verdict != "ok" {
+        return Err(PackError::Format(verdict));
+    }
+    // 顺带确认是 WanFlow 的库，不是随便一个 sqlite
+    conn.query_row("SELECT COUNT(*) FROM media", [], |r| r.get::<_, i64>(0))?;
+    Ok(())
+}
+
+/// 读出并清掉「上次启动换过库」的标记（界面提示一次）
+pub fn take_swap_report(cache: &Path) -> Option<SwapReport> {
+    let marker = cache.join(SWAPPED_MARKER);
+    let raw = fs::read(&marker).ok()?;
+    let _ = fs::remove_file(&marker);
+    serde_json::from_slice(&raw).ok()
+}
+
+/// 恢复成「待替换」：写 pending，重启后由 apply_pending_swap 接手
+pub fn restore_to_pending(
+    pack_path: &Path,
+    cache: &Path,
+    remap: &[Remap],
+    dry_run: bool,
+) -> Result<RestoreOutcome> {
+    let pending = cache.join(PENDING_NAME);
+    // pending 是上次没换成的残留，直接覆盖
+    if pending.exists() {
+        let _ = fs::remove_file(&pending);
+    }
+    restore(pack_path, &pending, remap, dry_run, true)
 }
