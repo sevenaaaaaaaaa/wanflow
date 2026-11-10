@@ -2,7 +2,7 @@
 import { ref } from "vue";
 import Icon from "./Icon.vue";
 
-const emit = defineEmits<{ pick: [kind: "folder" | "photos"]; checkUpdate: [] }>();
+const emit = defineEmits<{ pick: [kind: "folder" | "photos"]; checkUpdate: []; restore: [] }>();
 
 // 版本号来自 package.json（vite define），发版不再需要手改界面
 const version = __APP_VERSION__;
@@ -46,6 +46,9 @@ function reset() {
             <Icon name="image" :size="17" /> 从照片图库导入
           </button>
         </div>
+        <button class="restore-link" @click="emit('restore')">
+          <Icon name="layers" :size="14" /> 已经用 WanFlow 整理过？从整库包恢复…
+        </button>
         <p class="fine">
           支持 QQ / 微信保存的照片 · 自动去重、从文件名恢复拍摄时间 · 随时 ⌘Z 撤销
         </p>
@@ -214,6 +217,20 @@ h1 em {
 .door.primary kbd, .develop kbd {
   background: oklch(100% 0 0 / .34);
   opacity: 1;
+}
+.restore-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-12);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-4);
+  font-size: var(--fs-1);
+}
+.restore-link:hover {
+  color: var(--accent-ink);
 }
 .fine {
   margin: var(--sp-16) 0 0;

@@ -18,6 +18,7 @@ import AlbumModal from "./components/AlbumModal.vue";
 import TagModal from "./components/TagModal.vue";
 import Arena from "./components/Arena.vue";
 import ExportModal from "./components/ExportModal.vue";
+import WanpackModal from "./components/WanpackModal.vue";
 import CommandPalette from "./components/CommandPalette.vue";
 import Storyline from "./components/Storyline.vue";
 import type { Cmd } from "./types";
@@ -62,6 +63,7 @@ const showSuggestions = ref(false);
 const showImport = ref(false);
 const showSmart = ref(false);
 const showFamily = ref(false);
+const showWanpack = ref<null | "pack" | "restore">(null);
 const showAlbum = ref(false);
 const showTag = ref(false);
 const suggestions = ref<SuggestionItem[]>([]);
@@ -370,7 +372,7 @@ function onKey(e: KeyboardEvent) {
   const anyOverlay =
     paletteOpen.value || dupGroup.value !== null || arenaGroup.value !== null ||
     showSuggestions.value || showSmart.value || showImport.value || showExport.value ||
-    showTimeModal.value || showAlbum.value || showTag.value || showHistory.value;
+    showTimeModal.value || showAlbum.value || showTag.value || showHistory.value || showWanpack.value !== null;
 
   if (e.key === "/" && !inLightbox && !anyOverlay) {
     e.preventDefault();
@@ -408,6 +410,8 @@ const commands = computed<Cmd[]>(() => {
     { id: "suggest", group: "导入与分析", label: `智能初筛${suggestionCount.value ? `（${suggestionCount.value} 条建议）` : ""}`, run: openSuggestions },
     { id: "smart", group: "导入与分析", label: "智能精选…", run: () => (showSmart.value = true) },
     { id: "family", group: "导入与分析", label: "家人与面孔…", run: () => (showFamily.value = true) },
+    { id: "wanpack-out", group: "导入与分析", label: "打包整库…", hint: "生成 .wanpack", run: () => (showWanpack.value = "pack") },
+    { id: "wanpack-in", group: "导入与分析", label: "从整库包恢复…", hint: "选 .wanpack", run: () => (showWanpack.value = "restore") },
     { id: "time", group: "整理", label: "修正拍摄时间…", hint: sel.length ? `${sel.length} 张` : "", run: () => (showTimeModal.value = true) },
     { id: "album", group: "整理", label: "加入精选集…", hint: sel.length ? `${sel.length} 张` : "先选照片", run: () => { if (sel.length) showAlbum.value = true; } },
     { id: "tag", group: "整理", label: "打标签…", hint: sel.length ? `${sel.length} 张` : "先选照片", run: () => { if (sel.length) showTag.value = true; } },
@@ -579,7 +583,7 @@ function topbarLeave() {
     </div>
 
     <!-- 主区域 -->
-    <EmptyState v-if="!hasLibrary && !scan.running" @pick="pickAndScan" @check-update="checkForUpdates" />
+    <EmptyState v-if="!hasLibrary && !scan.running" @pick="pickAndScan" @check-update="checkForUpdates" @restore="showWanpack = 'restore'" />
     <Storyline
       v-else-if="view === 'story'"
       ref="storyRef"
@@ -735,6 +739,14 @@ function topbarLeave() {
       :ids="selectedIds"
       @close="showExport = false"
       @done="(s) => { showToast(`已导出 ${s.copied} 个文件到 ${s.destDir}`); refresh(); }"
+    />
+
+    <!-- 整库打包 / 恢复 -->
+    <WanpackModal
+      v-if="showWanpack"
+      :mode="showWanpack"
+      @close="showWanpack = null"
+      @done="(m: string) => { showWanpack = null; showToast(m); }"
     />
 
     <!-- 擂台 -->

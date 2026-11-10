@@ -761,3 +761,26 @@ sqlite3 ~/Library/Caches/com.wanflow.app/wanflow.db \
 - 打包是只读的，但 `VACUUM INTO` 会在**目的目录**写一个 `.wanpack.snapshot` 临时文件，成功/失败都要记得清理（当前实现成功时删）。
 - ZIP 读实现只支持 method=0；将来若用别的工具产出压缩包，`zip_read` 会明确报「压缩条目」而不是静默失败。
 - 恢复不校验目的盘剩余空间；大库（含人脸 embedding）预留 2 倍空间。
+
+## 2026-11-10 · .wanpack 界面入口（打包 / 恢复）
+
+**做到哪**：引擎之后接上入口——⌘K 两条命令 + 欢迎页一条链接，打包与恢复各有一次 dry-run 预览。仍然只搬元数据，不复制照片。
+
+**改动**
+- 新增 `src/components/WanpackModal.vue`：`mode=pack|restore`。打包：选位置 → 预览条数/体积 → 执行 → 显示路径、体积、sha256 前 12 位。恢复：选包 → 展示 manifest（版本/时间/内容）→ 选目标库 → 逐个来源挑新目录（不选就保留原路径）→ 执行 → 显示重写/未映射条数。
+- `src/api.ts`：`wanpackPlan / wanpackPack / wanpackInspect / wanpackRestore` 四个封装 + 7 个类型。
+- `src/App.vue`：`showWanpack` 状态、两条命令（导入与分析组）、浮层互斥、欢迎页事件接线。
+- `src/components/EmptyState.vue`：按钮下方加「已经用 WanFlow 整理过？从整库包恢复…」链接。
+- `src-tauri/src/wanpack.rs`：边界结构体加 `#[serde(rename_all = "camelCase")]`（前端 api.ts 是 camelCase），并加测试锁住 JSON 形状。
+
+**验证**
+- `npm run build` 通过（CSS 74.67 kB / gzip 13.28 kB，JS 215.19 kB / gzip 77.11 kB）。
+- `cargo test wanpack`：7 passed / 2 ignored，新增 `boundary_json_is_camel_case`（断言 `dbBytes` / `wanpackVersion` 存在且 `db_bytes` 不存在）。
+- 截图核对：打包模态、恢复模态、空状态链接（`/tmp/wf-pack2.png`、`/tmp/wf-restore2.png`、`/tmp/wf-empty-restore.png`）。
+- 设计自检：新增组件零 hex/rgb；EmptyState 里剩下的 hex 是 DEMO 占位照片（内容，非新增）。
+
+**没做 / 已知**
+- 恢复只写新库文件，不替换正在用的库（引擎与命令层都拦着）；替换流程要等「退出→备份→换文件→重启」的专门设计。
+- 模态里的目录选择用系统对话框，测试环境无法脚本化，只做了「选之前」的静态核对；真机点一遍才算验收。
+
+**回滚**：`git revert <sha>`（纯新增组件 + 接线；无库结构变更）。

@@ -278,7 +278,76 @@ function cmpSemver(a: string, b: string): number {
   return 0;
 }
 
+
+// —— .wanpack 整库打包 ——
+
+export interface WanpackStats {
+  media: number;
+  actions: number;
+  tags: number;
+  albums: number;
+  faces: number;
+}
+
+export interface WanpackSource {
+  id: number;
+  kind: string;
+  label: string;
+  root: string | null;
+}
+
+export interface WanpackFile {
+  path: string;
+  bytes: number;
+  sha256: string;
+}
+
+export interface WanpackManifest {
+  wanpackVersion: number;
+  appVersion: string;
+  schemaVersion: number;
+  createdAt: number;
+  stats: WanpackStats;
+  sources: WanpackSource[];
+  files: WanpackFile[];
+}
+
+export interface WanpackPlan {
+  dest: string;
+  dbBytes: number;
+  stats: WanpackStats;
+  sources: WanpackSource[];
+  blocked: string[];
+}
+
+export interface WanpackOutcome {
+  dest: string;
+  packBytes: number;
+  dbBytes: number;
+  stats: WanpackStats;
+  sha256: string;
+}
+
+export interface WanpackRestoreOutcome {
+  dest: string;
+  stats: WanpackStats;
+  mediaRewritten: number;
+  sourcesRewritten: number;
+  mediaUnmapped: number;
+}
+
+export interface WanpackRemap {
+  from: string;
+  to: string;
+}
+
 export const api = {
+  wanpackPlan: (dest: string) => invoke<WanpackPlan>("wanpack_plan", { dest }),
+  wanpackPack: (dest: string, dryRun = false, overwrite = false) =>
+    invoke<WanpackOutcome>("wanpack_pack", { dest, dryRun, overwrite }),
+  wanpackInspect: (pack: string) => invoke<WanpackManifest>("wanpack_inspect", { pack }),
+  wanpackRestore: (pack: string, dest: string, remap: WanpackRemap[], dryRun = false, overwrite = false) =>
+    invoke<WanpackRestoreOutcome>("wanpack_restore", { pack, dest, remap, dryRun, overwrite }),
   importFolder: (path: string, kind: "folder" | "qq", label: string) =>
     invoke<void>("import_folder", { path, kind, label }),
   importPhotosLibrary: () => invoke<void>("import_photos_library"),

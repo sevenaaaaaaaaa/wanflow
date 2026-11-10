@@ -76,6 +76,7 @@ impl From<serde_json::Error> for PackError {
 pub type Result<T> = std::result::Result<T, PackError>;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct PackSource {
     pub id: i64,
     pub kind: String,
@@ -93,6 +94,7 @@ pub struct PackFile {
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct PackStats {
     pub media: i64,
     pub actions: i64,
@@ -102,6 +104,7 @@ pub struct PackStats {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Manifest {
     pub wanpack_version: u32,
     pub app_version: String,
@@ -124,6 +127,7 @@ impl Default for PackOptions {
 }
 
 #[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PackPlan {
     pub dest: PathBuf,
     pub db_bytes: u64,
@@ -134,6 +138,7 @@ pub struct PackPlan {
 }
 
 #[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PackOutcome {
     pub dest: PathBuf,
     pub pack_bytes: u64,
@@ -143,6 +148,7 @@ pub struct PackOutcome {
 }
 
 #[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RestoreOutcome {
     pub dest: PathBuf,
     pub stats: PackStats,
@@ -797,6 +803,38 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM album_members", [], |r| r.get(0))
             .unwrap();
         assert_eq!(n, 1);
+    }
+
+    /// 前端 api.ts 用的是 camelCase，边界结构体必须跟着改
+    #[test]
+    fn boundary_json_is_camel_case() {
+        let plan = PackPlan {
+            dest: PathBuf::from("/tmp/a.wanpack"),
+            db_bytes: 12,
+            stats: PackStats { media: 1, actions: 0, tags: 0, albums: 0, faces: 0 },
+            sources: vec![],
+            blocked: vec![],
+        };
+        let json = serde_json::to_string(&plan).unwrap();
+        assert!(json.contains("dbBytes"), "{json}");
+        assert!(!json.contains("db_bytes"), "{json}");
+
+        let manifest = Manifest {
+            wanpack_version: 1,
+            app_version: "1.0".into(),
+            schema_version: 1,
+            created_at: 0,
+            stats: PackStats::default(),
+            sources: vec![],
+            files: vec![],
+        };
+        let mj = serde_json::to_string(&manifest).unwrap();
+        assert!(mj.contains("wanpackVersion"), "{mj}");
+        assert!(mj.contains("schemaVersion"), "{mj}");
+
+        // 入参也按 camelCase 收（前端传 { from, to }）
+        let r: Remap = serde_json::from_str(r#"{"from":"/a","to":"/b"}"#).unwrap();
+        assert_eq!(r.from, "/a");
     }
 
     #[test]
